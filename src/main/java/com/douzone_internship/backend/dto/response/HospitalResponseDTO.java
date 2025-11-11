@@ -1,9 +1,9 @@
 package com.douzone_internship.backend.dto.response;
 
-import java.util.ArrayList;
+import java.util.List;
 import lombok.Builder;
 
 @Builder
 public record HospitalResponseDTO(
-    ArrayList<String> nameList
+    List<String> nameList
 ) {}

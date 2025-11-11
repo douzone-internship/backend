@@ -4,20 +4,20 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
-@Table(name = "region")
+@Table(name = "sido")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Region {
+@Setter
+public class Sido {
 
     @Id
-    @Column(name = "sggu_cd")
-    private String sgguCd;
+    @Column(name = "sido_cd", nullable = false)
+    private String sidoCd;
 
-    @Column(name = "name")
+    @Column(name = "name", nullable = false)
     private String name;
 }
+

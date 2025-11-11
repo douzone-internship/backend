@@ -5,5 +5,6 @@ import lombok.Builder;
 @Builder
 public record LocationResponseDTO(
     String locationName,
-    String locationCode
+    String sidoCode,
+    String sgguCode
 ) {}

@@ -1,26 +1,26 @@
 package com.douzone_internship.backend.domain;
 
 import jakarta.persistence.*;
-import java.util.UUID;
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.util.UUID;
 
 @Entity
-@Table(name = "ai_comments")
+@Table(name = "ai_comment")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Setter
 public class AiComment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "comment_id")
+    @Column(name = "comment_id", nullable = false)
     private UUID commentId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "search_id")
+    @OneToOne
+    @JoinColumn(name = "search_id", nullable = false)
     private SearchLog searchLog;
 
-    @Column(name = "comment")
+    @Column(name = "comment", nullable = false)
     private String comment;
 }

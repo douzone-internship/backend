@@ -5,30 +5,22 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "search_logs")
+@Table(name = "search_log")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SearchLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "search_id")
+    @Column(name = "search_id", nullable = false)
     private UUID searchId;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "search_keyword")
+    @Column(name = "search_keyword", nullable = false)
     private String searchKeyword;
-
-    @OneToMany(mappedBy = "searchLog", cascade = CascadeType.ALL)
-    private List<Result> results = new ArrayList<>();
-
-    @OneToMany(mappedBy = "searchLog", cascade = CascadeType.ALL)
-    private List<AiComment> aiComments = new ArrayList<>();
 }

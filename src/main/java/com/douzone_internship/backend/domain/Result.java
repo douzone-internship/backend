@@ -1,41 +1,44 @@
 package com.douzone_internship.backend.domain;
 
 import jakarta.persistence.*;
-import java.util.UUID;
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.util.UUID;
 
 @Entity
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "result")
+@Getter
+@Setter
 public class Result {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "result_id")
+    @Column(name = "result_id", nullable = false)
     private UUID resultId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "search_id")
+    @ManyToOne
+    @JoinColumn(name = "search_id", nullable = false)
     private SearchLog searchLog;
 
-    @Column(name = "hospital_name")
+    @Column(name = "hospital_name", nullable = false)
     private String hospitalName;
 
-    @Column(name = "clinic_name")
+    @Column(name = "clinic_name", nullable = false)
     private String clinicName;
 
-    @Column(name = "sggu_name")
-    private String sgguName;
+    @Column(name = "sido_name", nullable = false)
+    private String sidoName;
 
-    @Column(name = "max_price")
+    @Column(name = "sigungu_name", nullable = false)
+    private String sigguName;
+
+    @Column(name = "max_price", nullable = false)
     private int maxPrice;
 
-    @Column(name = "min_price")
+    @Column(name = "min_price", nullable = false)
     private int minPrice;
 
-    @Column(name = "hospital_url")
+    @Column(name = "hospital_url", nullable = false)
     private String hospitalUrl;
 }

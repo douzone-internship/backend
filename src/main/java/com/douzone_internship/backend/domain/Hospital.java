@@ -1,28 +1,27 @@
 package com.douzone_internship.backend.domain;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import java.util.UUID;
-import lombok.AccessLevel;
+import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.util.UUID;
 
 @Entity
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "hospital")
+@Getter
+@Setter
 public class Hospital {
 
     @Id
-    @Column(name = "hospital_id")
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "hospital_id", nullable = false)
     private UUID hospitalId;
 
-    @Column(name = "name")
+    @ManyToOne
+    @JoinColumn(name = "sigungu_cd", nullable = false)
+    private Sigungu sigungu;
+
+    @Column(name = "name", nullable = false)
     private String name;
 
     @Column(name = "hospital_url")

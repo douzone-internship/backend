@@ -10,6 +10,9 @@ public record ResultRequest(
 
     String hospitalName,
 
-    @Pattern(regexp = "^\\d{10}$", message = "지역코드는 10자리 숫자여야 합니다")
-    String locationCode
+    @Pattern(regexp = "^\\d{6}$", message = "시도 코드는 6자리 숫자여야 합니다")
+    String sidoCode,
+
+    @Pattern(regexp = "^\\d{6}$", message = "시군구 코드는 6자리 숫자여야 합니다")
+    String sigguCode
 ) {}
