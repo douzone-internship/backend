@@ -30,8 +30,8 @@ public class Result {
     @Column(name = "sido_name", nullable = false)
     private String sidoName;
 
-    @Column(name = "sigungu_name", nullable = false)
-    private String sigguName;
+    @Column(name = "sggu_name", nullable = false)
+    private String sgguName;
 
     @Column(name = "max_price", nullable = false)
     private int maxPrice;

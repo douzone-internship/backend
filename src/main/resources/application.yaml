@@ -19,3 +19,11 @@ spring:
         enabled: false
   profiles:
     active: local
+
+
+env:
+  open-data-key:
+
+  clinic-code-url:
+
+  hospital-list-url:

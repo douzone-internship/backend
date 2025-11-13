@@ -11,7 +11,7 @@ import lombok.Setter;
 public class Sigungu {
 
     @Id
-    @Column(name = "sigungu_cd", nullable = false)
+    @Column(name = "sggu_cd", nullable = false)
     private String sgguCd;
 
     @ManyToOne

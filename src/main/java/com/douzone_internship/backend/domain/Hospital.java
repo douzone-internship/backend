@@ -1,8 +1,7 @@
 package com.douzone_internship.backend.domain;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.UUID;
 
@@ -10,6 +9,9 @@ import java.util.UUID;
 @Table(name = "hospital")
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Hospital {
 
     @Id
@@ -18,12 +20,15 @@ public class Hospital {
     private UUID hospitalId;
 
     @ManyToOne
-    @JoinColumn(name = "sigungu_cd", nullable = false)
+    @JoinColumn(name = "sggu_cd", nullable = false)
     private Sigungu sigungu;
 
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", nullable = false, unique = true)
     private String name;
 
     @Column(name = "hospital_url")
     private String hospitalUrl;
+
+    @Column(name = "hospital_addr")
+    private String hospitalAddress;
 }

@@ -38,3 +38,6 @@ out/
 
 ### ENV ###
 application-local.yaml
+
+### DATA ###
+data/
