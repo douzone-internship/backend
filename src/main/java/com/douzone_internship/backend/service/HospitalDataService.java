@@ -23,6 +23,7 @@ public class HospitalDataService extends AbstractApiService<RawHospitalResponseD
         hospital.setHospitalAddress(dto.getAddr());
         hospital.setHospitalUrl(dto.getHospUrl());
         hospital.setName(dto.getYadmNm());
+        hospital.setYkiho(dto.getYkiho());
 
         Sigungu sigungu = sigunguRepository.getReferenceById(dto.getSgguCd());
         hospital.setSigungu(sigungu);

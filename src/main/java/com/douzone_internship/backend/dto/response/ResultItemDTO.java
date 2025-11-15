@@ -7,6 +7,7 @@ public record ResultItemDTO(
     String hospitalName,
     String location,
     String clinicName,
-    Integer price
+    int minPrice,
+    int maxPrice
 ) {}
 

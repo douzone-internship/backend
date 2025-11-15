@@ -23,7 +23,7 @@ public class Hospital {
     @JoinColumn(name = "sggu_cd", nullable = false)
     private Sigungu sigungu;
 
-    @Column(name = "name", nullable = false, unique = true)
+    @Column(name = "name", nullable = false)
     private String name;
 
     @Column(name = "hospital_url")
@@ -31,4 +31,7 @@ public class Hospital {
 
     @Column(name = "hospital_addr")
     private String hospitalAddress;
+
+    @Column(name = "ykiho", unique = true)
+    private String ykiho;
 }

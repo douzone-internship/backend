@@ -7,12 +7,10 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class RawHospitalResponseDTO {
-    private String sgguCd;
-    private String yadmNm;
-    private int maxPrc;
-    private int minPrc;
-    private String hospUrl;
-    private String addr;
+public class RawClinicPaymentResponseDTO {
+    private String maxPrc;
+    private String minPrc;
+    private String npayKorNm;
     private String ykiho;
+    private String yadmNm;
 }
