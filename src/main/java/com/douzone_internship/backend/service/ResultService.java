@@ -111,6 +111,7 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
                 .list(resultItems)
                 .aiComment(aiComment)
                 .build();
+
         return ResponseEntity.ok(response);
     }
 

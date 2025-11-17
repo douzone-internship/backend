@@ -10,5 +10,5 @@ import java.util.List;
 public interface ClinicRepository extends JpaRepository<Clinic, String> {
 
     // clinic_cd 컬럼에서 부분 일치 검색
-    List<Clinic> findByClinicCdContaining(String clinicCd);
+    List<Clinic> findByNameContaining(String name);
 }
