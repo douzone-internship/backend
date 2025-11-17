@@ -20,8 +20,7 @@ public class ResultController {
 
     @PostMapping("/result/reports")
     public ResponseEntity<ResultListResponseDTO> getReport(@Validated @RequestBody ResultRequest resultRequest) {
-        resultService.generateResult(resultRequest);
-        return null;
+        return resultService.generateResult(resultRequest);
     }
 
 }

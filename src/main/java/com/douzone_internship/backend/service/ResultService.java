@@ -7,6 +7,8 @@ import com.douzone_internship.backend.dto.response.RawClinicPaymentResponseDTO;
 import com.douzone_internship.backend.dto.response.ResultItemDTO;
 import com.douzone_internship.backend.dto.response.ResultListResponseDTO;
 import com.douzone_internship.backend.repository.HospitalRepository;
+import java.util.Objects;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class ResultService extends AbstractApiService<RawClinicPaymentResponseDTO, Void> {
 
     @Value("${env.clinic-payment-url}")
@@ -34,11 +37,7 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
 
     private final RestTemplate restTemplate;
     private final HospitalRepository hospitalRepository;
-
-    public ResultService(RestTemplate restTemplate, HospitalRepository hospitalRepository) {
-        this.restTemplate = restTemplate;
-        this.hospitalRepository = hospitalRepository;
-    }
+    private final AiService aiService;
 
     public ResponseEntity<ResultListResponseDTO> generateResult(ResultRequest resultRequest) {
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
@@ -62,14 +61,38 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
         // API 호출
         String jsonResponse = restTemplate.getForObject(uri, String.class);
 
+        // 검색 결과가 없는경우
+        if(Objects.requireNonNull(jsonResponse).isEmpty()) {
+            ResultListResponseDTO emptyResponse = ResultListResponseDTO.builder()
+                    .resultCount(0)
+                    .list(List.of())
+                    .aiComment("no result")
+                    .build();
+            return ResponseEntity.ok(emptyResponse);
+        }
+
         // 상속받은 parseApiResponse 메서드로 DTO 리스트 파싱
         List<RawClinicPaymentResponseDTO> rawItems = parseApiResponse(jsonResponse, RawClinicPaymentResponseDTO.class);
 
         // DTO 리스트를 ResultItemDTO 리스트로 변환
         List<ResultItemDTO> resultItems = rawItems.stream()
                 .map(rawItem -> {
-                    Optional<Hospital> hospitalOpt = hospitalRepository.findByname((rawItem.getYadmNm()));
-                    String location = hospitalOpt.map(Hospital::getHospitalAddress).orElse("주소 정보 없음");
+                    Optional<Hospital> hospitalOpt;
+
+                    // sigguCode가 있으면 시군구 + 이름으로 조회
+                    if (resultRequest.sigguCode() != null) {
+                        hospitalOpt = hospitalRepository.findFirstByNameAndSigungu_SgguCd(
+                                rawItem.getYadmNm(),
+                                resultRequest.sigguCode()
+                        );
+                    } else {
+                        // sigguCode가 없으면 이름으로 조회
+                        hospitalOpt = hospitalRepository.findFirstByName(rawItem.getYadmNm());
+                    }
+
+                    String location = hospitalOpt
+                            .map(Hospital::getHospitalAddress)
+                            .orElse("주소 정보 없음");
 
                     return new ResultItemDTO(
                             rawItem.getYadmNm(),
@@ -81,8 +104,14 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
                 })
                 .collect(Collectors.toList());
 
+        String aiComment = aiService.callAiApi(resultItems);
 
-        return null;
+        ResultListResponseDTO response = ResultListResponseDTO.builder()
+                .resultCount(resultItems.size())
+                .list(resultItems)
+                .aiComment(aiComment)
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     @Override

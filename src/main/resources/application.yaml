@@ -1,11 +1,16 @@
 spring:
-  application:
-    name: backend
   datasource:
     url:
     username:
     password:
-    driver-class-name: org.postgresql.Driver
+    driver-class-name:
+
+  application:
+    name: backend
+
+  profiles:
+    active: local
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -13,13 +18,18 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-  ai:
-    openai:
-      speech:
-        enabled: false
-  profiles:
-    active: local
+        jdbc:
+          batch_size: 1000
+          order_inserts: true
+          order_updates: true
 
+system-prompt:
+
+user-prompt:
+
+api-url:
+
+api-key:
 
 env:
   open-data-key:
