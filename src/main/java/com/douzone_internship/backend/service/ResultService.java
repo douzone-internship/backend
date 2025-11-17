@@ -1,13 +1,16 @@
-// ResultService.java
 package com.douzone_internship.backend.service;
 
-import com.douzone_internship.backend.domain.Hospital;
+import com.douzone_internship.backend.domain.*;
 import com.douzone_internship.backend.dto.request.ResultRequest;
 import com.douzone_internship.backend.dto.response.RawClinicPaymentResponseDTO;
 import com.douzone_internship.backend.dto.response.ResultItemDTO;
 import com.douzone_internship.backend.dto.response.ResultListResponseDTO;
+import com.douzone_internship.backend.repository.AiCommentRepository;
 import com.douzone_internship.backend.repository.HospitalRepository;
 import java.util.Objects;
+
+import com.douzone_internship.backend.repository.ResultRepository;
+import com.douzone_internship.backend.repository.SearchLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,9 +40,52 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
 
     private final RestTemplate restTemplate;
     private final HospitalRepository hospitalRepository;
+    private final ResultSaveService resultSaveService;
+    private final SearchLogRepository searchLogRepository;
+    private final ResultRepository resultRepository;
+    private final AiCommentRepository aiCommentRepository;
     private final AiService aiService;
 
     public ResponseEntity<ResultListResponseDTO> generateResult(ResultRequest resultRequest) {
+
+        StringBuilder keyword = new StringBuilder();
+        keyword.append(resultRequest.sidoCode());
+        keyword.append(resultRequest.sigguCode() == null ? "null" : resultRequest.sigguCode());
+        keyword.append(resultRequest.hospitalName() == null ? "null" : resultRequest.hospitalName());
+
+        // Db에 캐싱 여부 확인
+        if(checkSearchLog(resultRequest, keyword.toString())) {
+            Optional<SearchLog> cachedLog = searchLogRepository.findBySearchKeyword(keyword.toString());
+
+            SearchLog searchLog = cachedLog.get();
+
+            // Result 리스트 조회
+            List<ResultItemDTO> cachedResults = resultRepository.findBySearchLog(searchLog)
+                    .stream()
+                    .map(result -> new ResultItemDTO(
+                            result.getHospitalName(),
+                            result.getHospitalAddress(),
+                            result.getClinicName(),
+                            result.getMinPrice(),
+                            result.getMaxPrice()
+                    ))
+                    .collect(Collectors.toList());
+
+            // AI 코멘트 조회
+            String cachedAiComment = aiCommentRepository.findBySearchLog(searchLog)
+                    .map(AiComment::getComment)
+                    .orElse("");
+
+            // 캐싱된 응답 생성
+            ResultListResponseDTO cachedResponse = ResultListResponseDTO.builder()
+                    .resultCount(cachedResults.size())
+                    .list(cachedResults)
+                    .aiComment(cachedAiComment)
+                    .build();
+
+            return ResponseEntity.ok(cachedResponse);
+        }
+
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("ServiceKey", apiKey);
         params.add("pageNo", "1");
@@ -112,7 +158,15 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
                 .aiComment(aiComment)
                 .build();
 
+        // 비동기로 DB에 저장
+        resultSaveService.saveResultAsync(resultRequest, resultItems, aiComment);
+
         return ResponseEntity.ok(response);
+    }
+
+    private boolean checkSearchLog(ResultRequest resultRequest, String keyWord) {
+
+        return searchLogRepository.existsSearchLogBySearchKeyword(keyWord);
     }
 
     @Override

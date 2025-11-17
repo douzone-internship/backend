@@ -1,7 +1,11 @@
 package com.douzone_internship.backend.domain;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 import java.util.UUID;
@@ -10,6 +14,9 @@ import java.util.UUID;
 @Table(name = "ai_comment")
 @Getter
 @Setter
+@AllArgsConstructor
+@RequiredArgsConstructor
+@Builder
 public class AiComment {
 
     @Id
@@ -21,6 +28,6 @@ public class AiComment {
     @JoinColumn(name = "search_id", nullable = false)
     private SearchLog searchLog;
 
-    @Column(name = "comment", nullable = false)
+    @Column(name = "comment", nullable = false, columnDefinition = "TEXT")
     private String comment;
 }

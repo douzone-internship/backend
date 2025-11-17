@@ -1,7 +1,10 @@
 package com.douzone_internship.backend.domain;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.UUID;
@@ -10,6 +13,9 @@ import java.util.UUID;
 @Table(name = "result")
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class Result {
 
     @Id
@@ -27,11 +33,8 @@ public class Result {
     @Column(name = "clinic_name", nullable = false)
     private String clinicName;
 
-    @Column(name = "sido_name", nullable = false)
-    private String sidoName;
-
-    @Column(name = "sggu_name", nullable = false)
-    private String sgguName;
+    @Column(name = "hospital_addr", nullable = false)
+    private String hospitalAddress;
 
     @Column(name = "max_price", nullable = false)
     private int maxPrice;
