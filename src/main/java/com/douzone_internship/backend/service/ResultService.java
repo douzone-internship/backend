@@ -11,6 +11,8 @@ import java.util.Objects;
 
 import com.douzone_internship.backend.repository.ResultRepository;
 import com.douzone_internship.backend.repository.SearchLogRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,6 +51,7 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
     public ResponseEntity<ResultListResponseDTO> generateResult(ResultRequest resultRequest) {
 
         StringBuilder keyword = new StringBuilder();
+        keyword.append(resultRequest.clinicCode());
         keyword.append(resultRequest.sidoCode());
         keyword.append(resultRequest.sigguCode() == null ? "null" : resultRequest.sigguCode());
         keyword.append(resultRequest.hospitalName() == null ? "null" : resultRequest.hospitalName());
@@ -101,14 +104,15 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
 
         URI uri = UriComponentsBuilder.fromHttpUrl(clinicPaymentUrl)
                 .queryParams(params)
-                .build(true)
+                .encode()
+                .build()
                 .toUri();
 
         // API 호출
         String jsonResponse = restTemplate.getForObject(uri, String.class);
 
         // 검색 결과가 없는경우
-        if(Objects.requireNonNull(jsonResponse).isEmpty()) {
+        if(Objects.requireNonNull(jsonResponse).isEmpty() || isEmptyResponse(jsonResponse)) {
             ResultListResponseDTO emptyResponse = ResultListResponseDTO.builder()
                     .resultCount(0)
                     .list(List.of())
@@ -167,6 +171,23 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
     private boolean checkSearchLog(ResultRequest resultRequest, String keyWord) {
 
         return searchLogRepository.existsSearchLogBySearchKeyword(keyWord);
+    }
+
+    private boolean isEmptyResponse(String json) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(json);
+            JsonNode body = root.path("response").path("body");
+            int totalCount = body.path("totalCount").asInt(-1);
+            JsonNode itemsNode = body.path("items");
+            boolean itemsEmpty =
+                    itemsNode.isMissingNode()
+                            || (itemsNode.isTextual() && itemsNode.asText().isBlank())
+                            || (itemsNode.has("item") && itemsNode.path("item").isMissingNode());
+            return totalCount == 0 || itemsEmpty;
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     @Override

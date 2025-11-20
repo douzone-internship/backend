@@ -35,7 +35,7 @@ public class ResultSaveService {
     public void saveResultAsync(ResultRequest resultRequest, List<ResultItemDTO> resultItems, String aiComment) {
 
         SearchLog searchLog = SearchLog.builder()
-                .searchKeyword(resultRequest.sidoCode() + resultRequest.sigguCode() + resultRequest.hospitalName())
+                .searchKeyword(resultRequest.clinicCode() + resultRequest.sidoCode() + resultRequest.sigguCode() + resultRequest.hospitalName())
                 .createdAt(LocalDateTime.now())
                 .build();
 
