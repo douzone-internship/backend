@@ -26,6 +26,7 @@ public abstract class AbstractApiService<T, E> {
 
     /**
      * JSON 응답을 파싱하여 DTO 리스트로 변환하는 공통 메서드
+     * 단일 객체와 배열 모두 처리 가능
      */
     protected List<T> parseApiResponse(String jsonResponse, Class<T> dtoType) {
         try {
@@ -33,11 +34,21 @@ public abstract class AbstractApiService<T, E> {
             JsonNode itemsNode = rootNode.path("response").path("body").path("items").path("item");
 
             List<T> dtoList = new ArrayList<>();
+
+            if (itemsNode.isMissingNode() || itemsNode.isNull()) {
+                return dtoList; // 빈 리스트 반환
+            }
+
             if (itemsNode.isArray()) {
+                // 배열인 경우
                 for (JsonNode item : itemsNode) {
                     T dto = objectMapper.treeToValue(item, dtoType);
                     dtoList.add(dto);
                 }
+            } else {
+                // 단일 객체인 경우
+                T dto = objectMapper.treeToValue(itemsNode, dtoType);
+                dtoList.add(dto);
             }
             return dtoList;
         } catch (Exception e) {

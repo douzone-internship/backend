@@ -27,6 +27,6 @@ public class SearchLog {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "search_keyword", nullable = false)
+    @Column(name = "search_keyword", nullable = false, unique = true)
     private String searchKeyword;
 }

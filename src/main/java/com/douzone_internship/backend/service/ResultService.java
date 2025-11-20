@@ -148,8 +148,8 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
                             rawItem.getYadmNm(),
                             location,
                             rawItem.getNpayKorNm(),
-                            Integer.parseInt(rawItem.getMinPrc()),
-                            Integer.parseInt(rawItem.getMaxPrc())
+                            rawItem.getMinPrc(),
+                            rawItem.getMaxPrc()
                     );
                 })
                 .collect(Collectors.toList());
