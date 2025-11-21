@@ -50,43 +50,11 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
 
     public ResponseEntity<ResultListResponseDTO> generateResult(ResultRequest resultRequest) {
 
-        StringBuilder keyword = new StringBuilder();
-        keyword.append(resultRequest.clinicCode());
-        keyword.append(resultRequest.sidoCode());
-        keyword.append(resultRequest.sigguCode() == null ? "null" : resultRequest.sigguCode());
-        keyword.append(resultRequest.hospitalName() == null ? "null" : resultRequest.hospitalName());
+        String keyword = extractKeyword(resultRequest);
 
         // Db에 캐싱 여부 확인
-        if(checkSearchLog(resultRequest, keyword.toString())) {
-            Optional<SearchLog> cachedLog = searchLogRepository.findBySearchKeyword(keyword.toString());
-
-            SearchLog searchLog = cachedLog.get();
-
-            // Result 리스트 조회
-            List<ResultItemDTO> cachedResults = resultRepository.findBySearchLog(searchLog)
-                    .stream()
-                    .map(result -> new ResultItemDTO(
-                            result.getHospitalName(),
-                            result.getHospitalAddress(),
-                            result.getClinicName(),
-                            result.getMinPrice(),
-                            result.getMaxPrice()
-                    ))
-                    .collect(Collectors.toList());
-
-            // AI 코멘트 조회
-            String cachedAiComment = aiCommentRepository.findBySearchLog(searchLog)
-                    .map(AiComment::getComment)
-                    .orElse("");
-
-            // 캐싱된 응답 생성
-            ResultListResponseDTO cachedResponse = ResultListResponseDTO.builder()
-                    .resultCount(cachedResults.size())
-                    .list(cachedResults)
-                    .aiComment(cachedAiComment)
-                    .build();
-
-            return ResponseEntity.ok(cachedResponse);
+        if(checkSearchLog(resultRequest, keyword)) {
+            return getCachedResult(keyword);
         }
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
@@ -166,6 +134,51 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
         resultSaveService.saveResultAsync(resultRequest, resultItems, aiComment);
 
         return ResponseEntity.ok(response);
+    }
+
+    public ResponseEntity<ResultListResponseDTO> getResult(String keyword) {
+        return getCachedResult(keyword);
+    }
+
+    public String extractKeyword(ResultRequest resultRequest) {
+        StringBuilder keyword = new StringBuilder();
+        keyword.append(resultRequest.clinicCode());
+        keyword.append(resultRequest.sidoCode());
+        keyword.append(resultRequest.sigguCode() == null ? "null" : resultRequest.sigguCode());
+        keyword.append(resultRequest.hospitalName() == null ? "null" : resultRequest.hospitalName());
+        return keyword.toString();
+    }
+
+    private ResponseEntity<ResultListResponseDTO> getCachedResult(String keyword) {
+        Optional<SearchLog> cachedLog = searchLogRepository.findBySearchKeyword(keyword);
+
+        SearchLog searchLog = cachedLog.get();
+
+        // Result 리스트 조회
+        List<ResultItemDTO> cachedResults = resultRepository.findBySearchLog(searchLog)
+                .stream()
+                .map(result -> new ResultItemDTO(
+                        result.getHospitalName(),
+                        result.getHospitalAddress(),
+                        result.getClinicName(),
+                        result.getMinPrice(),
+                        result.getMaxPrice()
+                ))
+                .collect(Collectors.toList());
+
+        // AI 코멘트 조회
+        String cachedAiComment = aiCommentRepository.findBySearchLog(searchLog)
+                .map(AiComment::getComment)
+                .orElse("");
+
+        // 캐싱된 응답 생성
+        ResultListResponseDTO cachedResponse = ResultListResponseDTO.builder()
+                .resultCount(cachedResults.size())
+                .list(cachedResults)
+                .aiComment(cachedAiComment)
+                .build();
+
+        return ResponseEntity.ok(cachedResponse);
     }
 
     private boolean checkSearchLog(ResultRequest resultRequest, String keyWord) {
