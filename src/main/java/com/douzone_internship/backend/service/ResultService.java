@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -48,6 +49,7 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
     private final AiCommentRepository aiCommentRepository;
     private final AiService aiService;
 
+    @Transactional(readOnly = true)
     public ResponseEntity<ResultListResponseDTO> generateResult(ResultRequest resultRequest) {
 
         String keyword = extractKeyword(resultRequest);
@@ -155,7 +157,7 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
         SearchLog searchLog = cachedLog.get();
 
         // Result 리스트 조회
-        List<ResultItemDTO> cachedResults = resultRepository.findBySearchLog(searchLog)
+        List<ResultItemDTO> cachedResults = resultRepository.findBySearchLogWithFetch(searchLog)
                 .stream()
                 .map(result -> new ResultItemDTO(
                         result.getHospitalName(),
