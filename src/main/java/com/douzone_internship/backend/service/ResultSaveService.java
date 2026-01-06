@@ -10,6 +10,8 @@ import com.douzone_internship.backend.repository.AiCommentRepository;
 import com.douzone_internship.backend.repository.ClinicRepository;
 import com.douzone_internship.backend.repository.ResultRepository;
 import com.douzone_internship.backend.repository.SearchLogRepository;
+import com.douzone_internship.backend.util.SHA256;
+import java.security.NoSuchAlgorithmException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -29,14 +31,20 @@ public class ResultSaveService {
     private final AiCommentRepository aiCommentRepository;
     private final ClinicRepository clinicRepository;
     private final ResultRepository resultRepository;
+    private final SHA256 sha256;
 
     @Async
     @Transactional
-    public void saveResultAsync(ResultRequest resultRequest, List<ResultItemDTO> resultItems, String aiComment) {
+    public void saveResultAsync(ResultRequest resultRequest, List<ResultItemDTO> resultItems, String aiComment)
+            throws NoSuchAlgorithmException {
+
+        String keyword = resultRequest.clinicCode() + resultRequest.sidoCode() + resultRequest.sigguCode() + resultRequest.hospitalName();
+        String hashedKeyword = sha256.encrypt(keyword);
 
         SearchLog searchLog = SearchLog.builder()
-                .searchKeyword(resultRequest.clinicCode() + resultRequest.sidoCode() + resultRequest.sigguCode() + resultRequest.hospitalName())
                 .createdAt(LocalDateTime.now())
+                .searchKeyword(hashedKeyword)
+                .originalKeyword(keyword)
                 .build();
 
         SearchLog savedSearchLog = searchLogRepository.save(searchLog);

@@ -4,6 +4,7 @@ import com.douzone_internship.backend.dto.request.ResultRequest;
 import com.douzone_internship.backend.dto.response.ResultListResponseDTO;
 import com.douzone_internship.backend.service.ResultService;
 import jakarta.servlet.http.HttpSession;
+import java.security.NoSuchAlgorithmException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -21,14 +22,15 @@ public class ResultController {
     private final ResultService resultService;
 
     @PostMapping("/result/reports")
-    public ResponseEntity<ResultListResponseDTO> generateReport(@Validated @RequestBody ResultRequest resultRequest, HttpSession httpSession) {
+    public ResponseEntity<ResultListResponseDTO> generateReport(@Validated @RequestBody ResultRequest resultRequest, HttpSession httpSession)
+            throws NoSuchAlgorithmException {
         httpSession.setAttribute("keyword", resultService.extractKeyword(resultRequest));
         return resultService.generateResult(resultRequest);
     }
 
 
-    @GetMapping("/result/reportsㅎ")
-    public ResponseEntity<ResultListResponseDTO> getReport(HttpSession httpSession) {
+    @GetMapping("/result/reports")
+    public ResponseEntity<ResultListResponseDTO> getReport(HttpSession httpSession) throws NoSuchAlgorithmException {
         return resultService.getResult((String) httpSession.getAttribute("keyword"));
     }
 }

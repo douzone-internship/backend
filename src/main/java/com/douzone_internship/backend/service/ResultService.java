@@ -7,6 +7,8 @@ import com.douzone_internship.backend.dto.response.ResultItemDTO;
 import com.douzone_internship.backend.dto.response.ResultListResponseDTO;
 import com.douzone_internship.backend.repository.AiCommentRepository;
 import com.douzone_internship.backend.repository.HospitalRepository;
+import com.douzone_internship.backend.util.SHA256;
+import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
 
 import com.douzone_internship.backend.repository.ResultRepository;
@@ -48,15 +50,18 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
     private final ResultRepository resultRepository;
     private final AiCommentRepository aiCommentRepository;
     private final AiService aiService;
+    private final SHA256 sha256;
 
     @Transactional(readOnly = true)
-    public ResponseEntity<ResultListResponseDTO> generateResult(ResultRequest resultRequest) {
+    public ResponseEntity<ResultListResponseDTO> generateResult(ResultRequest resultRequest)
+            throws NoSuchAlgorithmException {
 
         String keyword = extractKeyword(resultRequest);
+        String hashedKeyword = sha256.encrypt(keyword);
 
         // Db에 캐싱 여부 확인
-        if(checkSearchLog(resultRequest, keyword)) {
-            return getCachedResult(keyword);
+        if(checkSearchLog(resultRequest, hashedKeyword)) {
+            return getCachedResult(hashedKeyword);
         }
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
@@ -138,8 +143,8 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
         return ResponseEntity.ok(response);
     }
 
-    public ResponseEntity<ResultListResponseDTO> getResult(String keyword) {
-        return getCachedResult(keyword);
+    public ResponseEntity<ResultListResponseDTO> getResult(String keyword) throws NoSuchAlgorithmException {
+        return getCachedResult(sha256.encrypt(keyword));
     }
 
     public String extractKeyword(ResultRequest resultRequest) {
@@ -184,7 +189,6 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
     }
 
     private boolean checkSearchLog(ResultRequest resultRequest, String keyWord) {
-
         return searchLogRepository.existsSearchLogBySearchKeyword(keyWord);
     }
 

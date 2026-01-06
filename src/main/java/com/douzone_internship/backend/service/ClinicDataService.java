@@ -27,7 +27,6 @@ public class ClinicDataService extends AbstractApiService<RawClinicResponseDTO, 
         return clinicRepository;
     }
 
-    @Transactional
     public void updateClinics(String jsonResponse) {
         processApiResponse(jsonResponse, RawClinicResponseDTO.class);
     }
