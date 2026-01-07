@@ -39,3 +39,10 @@ env:
   hospital-list-url:
 
   clinic-payment-url:
+
+security:
+  jwt:
+    token:
+      secret-key:
+      access-expiration:
+      refresh-expiration:
