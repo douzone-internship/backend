@@ -1,4 +1,14 @@
 spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id:
+            client-secret:
+            scope:
+              - profile
+              - email
   datasource:
     url:
     username:
@@ -40,7 +50,6 @@ env:
 
   clinic-payment-url:
 
-security:
   jwt:
     token:
       secret-key:
