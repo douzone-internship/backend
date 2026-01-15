@@ -3,7 +3,6 @@ package com.douzone_internship.backend.controller;
 import com.douzone_internship.backend.auth.JwtTokenProvider;
 import com.douzone_internship.backend.domain.Users;
 import com.douzone_internship.backend.repository.UsersRepository;
-import com.douzone_internship.backend.repository.UsersRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,9 +26,7 @@ public class AuthController {
         String email = request.get("email");
         String password = request.get("password");
 
-        Users user = usersRepository.findAll().stream()
-                .filter(u -> u.getEmail().equals(email))
-                .findFirst()
+        Users user = usersRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
 
         if (!passwordEncoder.matches(password, user.getProviderId())) {
@@ -47,14 +44,16 @@ public class AuthController {
         String password = request.get("password");
         String name = request.get("name");
 
-        if (usersRepository.findAll().stream().anyMatch(u -> u.getEmail().equals(email))) {
+        if (usersRepository.findByEmail(email).isPresent()) {
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
         }
 
-        Users user = new Users();
-        user.setEmail(email);
-        user.setName(name);
-        user.setProviderId(passwordEncoder.encode(password));
+        Users user = Users.builder()
+                .email(email)
+                .name(name)
+                .providerId(passwordEncoder.encode(password))
+                .build();
+
         usersRepository.save(user);
 
         return ResponseEntity.ok("회원가입 성공");
