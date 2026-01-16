@@ -23,10 +23,18 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         OAuth2User oAuth2User = super.loadUser(userRequest);
 
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
+        
+        log.info("OAuth2 Login - Provider: {}", registrationId);
+        log.info("OAuth2 User Attributes: {}", oAuth2User.getAttributes());
 
-        OAuth2Attribute attributes = OAuth2Attribute.of(registrationId, oAuth2User.getAttributes());
-
-        saveOrUpdate(attributes);
+        try {
+            OAuth2Attribute attributes = OAuth2Attribute.of(registrationId, oAuth2User.getAttributes());
+            saveOrUpdate(attributes);
+            log.info("User saved/updated - Email: {}, Name: {}", attributes.email(), attributes.name());
+        } catch (Exception e) {
+            log.error("Error processing OAuth2 user", e);
+            throw new OAuth2AuthenticationException(e.getMessage());
+        }
 
         return oAuth2User;
     }
