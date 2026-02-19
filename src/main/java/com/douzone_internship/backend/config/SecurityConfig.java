@@ -37,16 +37,21 @@ public class SecurityConfig {
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // CORS 설정 추가
                                 .csrf(csrf -> csrf.disable()) // REST API이므로 CSRF 비활성화
                                 .sessionManagement(session -> session
-                                                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)) // OAuth2를 위해 세션 사용
+                                                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)) // OAuth2를 위해
+                                                                                                           // 세션 사용
                                 .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers("/api/auth/**", "/oauth2/**", "/login/**").permitAll() // 인증 관련 경로 모두 허용
+                                                .requestMatchers("/api/auth/**", "/oauth2/**", "/login/**",
+                                                                "/api/home/**", "/home/**", "/api/result/**",
+                                                                "/result/**")
+                                                .permitAll() // 인증, 홈, 결과 관련 경로 모두 허용
                                                 .anyRequest().authenticated())
                                 .exceptionHandling(exception -> exception
                                                 .authenticationEntryPoint((request, response, authException) -> {
                                                         // REST API - 인증 실패 시 리다이렉트 대신 401 반환
                                                         response.setContentType("application/json");
                                                         response.setStatus(401);
-                                                        response.getWriter().write("{\"code\":401,\"message\":\"Authentication required\"}");
+                                                        response.getWriter().write(
+                                                                        "{\"code\":401,\"message\":\"Authentication required\"}");
                                                 }))
                                 .oauth2Login(oauth2 -> oauth2
                                                 .userInfoEndpoint(userInfo -> userInfo
@@ -73,9 +78,8 @@ public class SecurityConfig {
                 CorsConfiguration configuration = new CorsConfiguration();
                 // 개발 환경에서 프론트엔드 주소 명시
                 configuration.setAllowedOrigins(List.of(
-                        "http://localhost:3000",
-                        "http://127.0.0.1:3000"
-                ));
+                                "http://localhost:3000",
+                                "http://127.0.0.1:3000"));
                 configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
                 configuration.setAllowedHeaders(List.of("*"));
                 configuration.setAllowCredentials(true); // 쿠키/세션 사용

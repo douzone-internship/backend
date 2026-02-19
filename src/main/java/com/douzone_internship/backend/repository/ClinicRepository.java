@@ -9,6 +9,7 @@ import java.util.List;
 @Repository
 public interface ClinicRepository extends JpaRepository<Clinic, String> {
 
-    // clinic_cd 컬럼에서 부분 일치 검색
     List<Clinic> findByNameContaining(String name);
+
+    Clinic findByName(String name);
 }
