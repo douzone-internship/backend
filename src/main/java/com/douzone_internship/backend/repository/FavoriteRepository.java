@@ -18,4 +18,6 @@ public interface FavoriteRepository extends JpaRepository<Favorite, UUID> {
     Optional<Favorite> findByUserIdAndHospitalNameAndClinicCode(UUID userId, String hospitalName, String clinicCode);
 
     boolean existsByUserIdAndHospitalNameAndClinicCode(UUID userId, String hospitalName, String clinicCode);
+
+    void deleteByUser(Users user);
 }

@@ -39,4 +39,10 @@ public class AuthController {
     public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal Object principal) {
         return ResponseEntity.ok(authService.getCurrentUser(principal));
     }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<?> deleteAccount(@AuthenticationPrincipal Object principal) {
+        authService.deleteAccount(principal);
+        return ResponseEntity.ok(Map.of("message", "회원 탈퇴가 완료되었습니다."));
+    }
 }

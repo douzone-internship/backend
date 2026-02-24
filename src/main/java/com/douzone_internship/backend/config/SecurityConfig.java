@@ -42,8 +42,9 @@ public class SecurityConfig {
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers("/api/auth/**", "/oauth2/**", "/login/**",
                                                                 "/api/home/**", "/home/**", "/api/result/**",
-                                                                "/result/**")
-                                                .permitAll() // 인증, 홈, 결과 관련 경로 모두 허용
+                                                                "/result/**",
+                                                                "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/swagger-resources/**")
+                                                .permitAll() // 인증, 홈, 결과, Swagger 관련 경로 모두 허용
                                                 .anyRequest().authenticated())
                                 .exceptionHandling(exception -> exception
                                                 .authenticationEntryPoint((request, response, authException) -> {
