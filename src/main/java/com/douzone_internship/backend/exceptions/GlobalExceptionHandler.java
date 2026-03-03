@@ -35,8 +35,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 HttpStatus.BAD_REQUEST.value(),
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
                 String.format("Required request parameter '%s' is missing", ex.getParameterName()),
-                path
-        );
+                path);
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
@@ -66,7 +65,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     // @Validated 를 통한 파라미터/경로변수 검증 실패
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex, WebRequest request) {
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex,
+            WebRequest request) {
         String path = extractPath(request);
         List<ErrorResponse.FieldErrorDetail> details = ex.getConstraintViolations().stream()
                 .map(this::toDetail)
@@ -83,6 +83,54 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
+    // 비즈니스 예외: 리소스 없음 (404)
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex, WebRequest request) {
+        String path = extractPath(request);
+        ErrorResponse body = ErrorResponse.of(
+                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                ex.getMessage(),
+                path);
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+    }
+
+    // 비즈니스 예외: 권한 없음 (403)
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex, WebRequest request) {
+        String path = extractPath(request);
+        ErrorResponse body = ErrorResponse.of(
+                HttpStatus.FORBIDDEN.value(),
+                HttpStatus.FORBIDDEN.getReasonPhrase(),
+                ex.getMessage(),
+                path);
+        return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
+    }
+
+    // 비즈니스 예외: 중복 리소스 (409)
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateResource(DuplicateResourceException ex, WebRequest request) {
+        String path = extractPath(request);
+        ErrorResponse body = ErrorResponse.of(
+                HttpStatus.CONFLICT.value(),
+                HttpStatus.CONFLICT.getReasonPhrase(),
+                ex.getMessage(),
+                path);
+        return new ResponseEntity<>(body, HttpStatus.CONFLICT);
+    }
+
+    // 비즈니스 예외: 잘못된 요청 (400)
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, WebRequest request) {
+        String path = extractPath(request);
+        ErrorResponse body = ErrorResponse.of(
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                ex.getMessage(),
+                path);
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
     // 그 외 모든 예외 - 500
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAll(Exception ex, WebRequest request) {
@@ -91,8 +139,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
                 ex.getMessage() != null ? ex.getMessage() : "Unexpected error",
-                path
-        );
+                path);
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 

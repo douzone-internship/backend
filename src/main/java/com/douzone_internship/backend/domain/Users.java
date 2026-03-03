@@ -23,16 +23,15 @@ public class Users {
 
     private String email;
     private String name;
+    private String password;
 
-    // 소셜 로그인 구분을 위한 필드
     @Enumerated(EnumType.STRING)
-    private Provider provider; // GOOGLE, KAKAO
+    private Provider provider;
 
-    private String providerId; // 소셜 서비스에서 준 고유 식별자
+    private String providerId;
 
     public Users update(String name) {
         this.name = name;
         return this;
     }
-
 }

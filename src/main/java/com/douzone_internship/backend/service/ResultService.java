@@ -5,21 +5,18 @@ import com.douzone_internship.backend.dto.request.ResultRequest;
 import com.douzone_internship.backend.dto.response.RawClinicPaymentResponseDTO;
 import com.douzone_internship.backend.dto.response.ResultItemDTO;
 import com.douzone_internship.backend.dto.response.ResultListResponseDTO;
+import com.douzone_internship.backend.exceptions.ResourceNotFoundException;
 import com.douzone_internship.backend.repository.AiCommentRepository;
 import com.douzone_internship.backend.repository.HospitalRepository;
-import com.douzone_internship.backend.util.SHA256;
-import java.security.NoSuchAlgorithmException;
-import java.util.Objects;
-
 import com.douzone_internship.backend.repository.ResultRepository;
 import com.douzone_internship.backend.repository.SearchLogRepository;
+import com.douzone_internship.backend.util.SHA256;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
@@ -28,9 +25,10 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -53,14 +51,14 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
     private final SHA256 sha256;
 
     @Transactional(readOnly = true)
-    public ResponseEntity<ResultListResponseDTO> generateResult(ResultRequest resultRequest)
+    public ResultListResponseDTO generateResult(ResultRequest resultRequest)
             throws NoSuchAlgorithmException {
 
         String keyword = extractKeyword(resultRequest);
         String hashedKeyword = sha256.encrypt(keyword);
 
-        // Db에 캐싱 여부 확인
-        if(checkSearchLog(resultRequest, hashedKeyword)) {
+        // DB에 캐싱 여부 확인
+        if (checkSearchLog(resultRequest, hashedKeyword)) {
             return getCachedResult(hashedKeyword);
         }
 
@@ -69,10 +67,10 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
         params.add("pageNo", "1");
         params.add("numOfRows", "1000");
         params.add("sidoCd", resultRequest.sidoCode());
-        if(resultRequest.sigguCode() != null) {
+        if (resultRequest.sigguCode() != null) {
             params.add("sgguCd", resultRequest.sigguCode());
         }
-        if(resultRequest.hospitalName() != null) {
+        if (resultRequest.hospitalName() != null) {
             params.add("yadmNm", resultRequest.hospitalName());
         }
         params.add("itemCd", resultRequest.clinicCode());
@@ -83,35 +81,27 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
                 .build()
                 .toUri();
 
-        // API 호출
         String jsonResponse = restTemplate.getForObject(uri, String.class);
 
-        // 검색 결과가 없는경우
-        if(Objects.requireNonNull(jsonResponse).isEmpty() || isEmptyResponse(jsonResponse)) {
-            ResultListResponseDTO emptyResponse = ResultListResponseDTO.builder()
+        if (Objects.requireNonNull(jsonResponse).isEmpty() || isEmptyResponse(jsonResponse)) {
+            return ResultListResponseDTO.builder()
                     .resultCount(0)
                     .list(List.of())
                     .aiComment("no result")
                     .build();
-            return ResponseEntity.ok(emptyResponse);
         }
 
-        // 상속받은 parseApiResponse 메서드로 DTO 리스트 파싱
         List<RawClinicPaymentResponseDTO> rawItems = parseApiResponse(jsonResponse, RawClinicPaymentResponseDTO.class);
 
-        // DTO 리스트를 ResultItemDTO 리스트로 변환
         List<ResultItemDTO> resultItems = rawItems.stream()
                 .map(rawItem -> {
                     Optional<Hospital> hospitalOpt;
 
-                    // sigguCode가 있으면 시군구 + 이름으로 조회
                     if (resultRequest.sigguCode() != null) {
                         hospitalOpt = hospitalRepository.findFirstByNameAndSigungu_SgguCd(
                                 rawItem.getYadmNm(),
-                                resultRequest.sigguCode()
-                        );
+                                resultRequest.sigguCode());
                     } else {
-                        // sigguCode가 없으면 이름으로 조회
                         hospitalOpt = hospitalRepository.findFirstByName(rawItem.getYadmNm());
                     }
 
@@ -124,10 +114,9 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
                             location,
                             rawItem.getNpayKorNm(),
                             rawItem.getMinPrc(),
-                            rawItem.getMaxPrc()
-                    );
+                            rawItem.getMaxPrc());
                 })
-                .collect(Collectors.toList());
+                .toList();
 
         String aiComment = aiService.callAiApi(resultItems);
 
@@ -137,17 +126,12 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
                 .aiComment(aiComment)
                 .build();
 
-        // 비동기로 DB에 저장
         resultSaveService.saveResultAsync(resultRequest, resultItems, aiComment);
 
-        return ResponseEntity.ok(response);
+        return response;
     }
 
-    public ResponseEntity<ResultListResponseDTO> getResult(String keyword) throws NoSuchAlgorithmException {
-        return getCachedResult(sha256.encrypt(keyword));
-    }
-
-    public String extractKeyword(ResultRequest resultRequest) {
+    private String extractKeyword(ResultRequest resultRequest) {
         StringBuilder keyword = new StringBuilder();
         keyword.append(resultRequest.clinicCode());
         keyword.append(resultRequest.sidoCode());
@@ -156,12 +140,10 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
         return keyword.toString();
     }
 
-    private ResponseEntity<ResultListResponseDTO> getCachedResult(String keyword) {
-        Optional<SearchLog> cachedLog = searchLogRepository.findBySearchKeyword(keyword);
+    private ResultListResponseDTO getCachedResult(String keyword) {
+        SearchLog searchLog = searchLogRepository.findBySearchKeyword(keyword)
+                .orElseThrow(() -> new ResourceNotFoundException("캐싱된 검색 결과를 찾을 수 없습니다."));
 
-        SearchLog searchLog = cachedLog.get();
-
-        // Result 리스트 조회
         List<ResultItemDTO> cachedResults = resultRepository.findBySearchLogWithFetch(searchLog)
                 .stream()
                 .map(result -> new ResultItemDTO(
@@ -169,23 +151,18 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
                         result.getHospitalAddress(),
                         result.getClinicName(),
                         result.getMinPrice(),
-                        result.getMaxPrice()
-                ))
-                .collect(Collectors.toList());
+                        result.getMaxPrice()))
+                .toList();
 
-        // AI 코멘트 조회
         String cachedAiComment = aiCommentRepository.findBySearchLog(searchLog)
                 .map(AiComment::getComment)
                 .orElse("");
 
-        // 캐싱된 응답 생성
-        ResultListResponseDTO cachedResponse = ResultListResponseDTO.builder()
+        return ResultListResponseDTO.builder()
                 .resultCount(cachedResults.size())
                 .list(cachedResults)
                 .aiComment(cachedAiComment)
                 .build();
-
-        return ResponseEntity.ok(cachedResponse);
     }
 
     private boolean checkSearchLog(ResultRequest resultRequest, String keyWord) {
@@ -199,10 +176,9 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
             JsonNode body = root.path("response").path("body");
             int totalCount = body.path("totalCount").asInt(-1);
             JsonNode itemsNode = body.path("items");
-            boolean itemsEmpty =
-                    itemsNode.isMissingNode()
-                            || (itemsNode.isTextual() && itemsNode.asText().isBlank())
-                            || (itemsNode.has("item") && itemsNode.path("item").isMissingNode());
+            boolean itemsEmpty = itemsNode.isMissingNode()
+                    || (itemsNode.isTextual() && itemsNode.asText().isBlank())
+                    || (itemsNode.has("item") && itemsNode.path("item").isMissingNode());
             return totalCount == 0 || itemsEmpty;
         } catch (Exception e) {
             return true;

@@ -64,10 +64,10 @@ springdoc:
     path: /swagger-ui.html
     tags-sorter: alpha
     operations-sorter: alpha
-    enabled: true
+    enabled: false
   api-docs:
     path: /v3/api-docs
-    enabled: true
+    enabled: false
   packages-to-scan: com.douzone_internship.backend.controller
   default-consumes-media-type: application/json
   default-produces-media-type: application/json

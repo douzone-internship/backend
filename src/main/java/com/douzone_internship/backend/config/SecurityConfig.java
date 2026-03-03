@@ -43,8 +43,12 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/auth/**", "/oauth2/**", "/login/**",
                                                                 "/api/home/**", "/home/**", "/api/result/**",
                                                                 "/result/**",
-                                                                "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/swagger-resources/**")
+                                                                "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
+                                                                "/swagger-resources/**")
                                                 .permitAll() // 인증, 홈, 결과, Swagger 관련 경로 모두 허용
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                                                "/api/comments")
+                                                .permitAll() // 병원별 댓글 조회는 비로그인 허용
                                                 .anyRequest().authenticated())
                                 .exceptionHandling(exception -> exception
                                                 .authenticationEntryPoint((request, response, authException) -> {

@@ -4,6 +4,9 @@ import com.douzone_internship.backend.domain.Favorite;
 import com.douzone_internship.backend.domain.Users;
 import com.douzone_internship.backend.dto.request.FavoriteRequestDTO;
 import com.douzone_internship.backend.dto.response.FavoriteResponseDTO;
+import com.douzone_internship.backend.exceptions.DuplicateResourceException;
+import com.douzone_internship.backend.exceptions.ResourceNotFoundException;
+import com.douzone_internship.backend.exceptions.UnauthorizedException;
 import com.douzone_internship.backend.repository.FavoriteRepository;
 import com.douzone_internship.backend.repository.UsersRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -21,78 +23,77 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class FavoriteService {
 
-    private final FavoriteRepository favoriteRepository;
-    private final UsersRepository usersRepository;
+        private final FavoriteRepository favoriteRepository;
+        private final UsersRepository usersRepository;
 
-    @Transactional
-    public FavoriteResponseDTO addFavorite(String userEmail, FavoriteRequestDTO dto) {
+        @Transactional
+        public FavoriteResponseDTO addFavorite(String userEmail, FavoriteRequestDTO dto) {
+                Users user = findUserByEmail(userEmail);
 
-        Users user = usersRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                if (favoriteRepository.existsByUserIdAndHospitalNameAndClinicCode(user.getId(),
+                                dto.getHospitalName().trim(),
+                                dto.getClinicCode().trim())) {
+                        throw new DuplicateResourceException("이미 찜한 항목입니다.");
+                }
 
-        if (favoriteRepository.existsByUserIdAndHospitalNameAndClinicCode(user.getId(), dto.getHospitalName().trim(),
-                dto.getClinicCode().trim())) {
-            throw new IllegalArgumentException("Already favorited");
+                Favorite favorite = Favorite.builder()
+                                .user(user)
+                                .hospitalName(dto.getHospitalName().trim())
+                                .clinicName(dto.getClinicName())
+                                .clinicCode(dto.getClinicCode().trim())
+                                .location(dto.getLocation())
+                                .minPrice(dto.getMinPrice())
+                                .maxPrice(dto.getMaxPrice())
+                                .build();
+
+                Favorite savedFavorite = favoriteRepository.save(favorite);
+                log.info("Successfully added favorite: {}", savedFavorite.getId());
+                return FavoriteResponseDTO.from(savedFavorite);
         }
 
-        Favorite favorite = Favorite.builder()
-                .user(user)
-                .hospitalName(dto.getHospitalName().trim())
-                .clinicName(dto.getClinicName())
-                .clinicCode(dto.getClinicCode().trim())
-                .location(dto.getLocation())
-                .minPrice(dto.getMinPrice())
-                .maxPrice(dto.getMaxPrice())
-                .build();
+        @Transactional
+        public void removeFavorite(String userEmail, UUID favoriteId) {
+                Users user = findUserByEmail(userEmail);
 
-        Favorite savedFavorite = favoriteRepository.save(favorite);
-        log.info("Successfully added favorite: {}", savedFavorite.getId());
-        return FavoriteResponseDTO.from(savedFavorite);
-    }
+                Favorite favorite = favoriteRepository.findById(favoriteId)
+                                .orElseThrow(() -> new ResourceNotFoundException("찜한 항목을 찾을 수 없습니다."));
 
-    @Transactional
-    public void removeFavorite(String userEmail, UUID favoriteId) {
-        Users user = usersRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                if (!favorite.getUser().getId().equals(user.getId())) {
+                        throw new UnauthorizedException("본인의 찜 목록만 삭제할 수 있습니다.");
+                }
 
-        Favorite favorite = favoriteRepository.findById(favoriteId)
-                .orElseThrow(() -> new IllegalArgumentException("Favorite not found"));
-
-        if (!favorite.getUser().getId().equals(user.getId())) {
-            throw new IllegalArgumentException("Unauthorized");
+                favoriteRepository.delete(favorite);
         }
 
-        favoriteRepository.delete(favorite);
-    }
+        @Transactional
+        public void removeFavoriteByDetails(String userEmail, String hospitalName, String clinicCode) {
+                Users user = findUserByEmail(userEmail);
 
-    @Transactional
-    public void removeFavoriteByDetails(String userEmail, String hospitalName, String clinicCode) {
+                Favorite favorite = favoriteRepository
+                                .findByUserIdAndHospitalNameAndClinicCode(user.getId(), hospitalName.trim(),
+                                                clinicCode.trim())
+                                .orElseThrow(() -> new ResourceNotFoundException("찜한 항목을 찾을 수 없습니다."));
 
-        Users user = usersRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                favoriteRepository.delete(favorite);
+        }
 
-        Favorite favorite = favoriteRepository
-                .findByUserIdAndHospitalNameAndClinicCode(user.getId(), hospitalName.trim(), clinicCode.trim())
-                .orElseThrow(
-                        () -> new IllegalArgumentException("Favorite not found - " + hospitalName + "/" + clinicCode));
+        public List<FavoriteResponseDTO> getFavorites(String userEmail) {
+                Users user = findUserByEmail(userEmail);
 
-        favoriteRepository.delete(favorite);
-    }
+                return favoriteRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).stream()
+                                .map(FavoriteResponseDTO::from)
+                                .toList();
+        }
 
-    public List<FavoriteResponseDTO> getFavorites(String userEmail) {
-        Users user = usersRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        public boolean isFavorited(String userEmail, String hospitalName, String clinicCode) {
+                Users user = findUserByEmail(userEmail);
 
-        return favoriteRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).stream()
-                .map(FavoriteResponseDTO::from)
-                .collect(Collectors.toList());
-    }
+                return favoriteRepository.existsByUserIdAndHospitalNameAndClinicCode(user.getId(), hospitalName.trim(),
+                                clinicCode.trim());
+        }
 
-    public boolean isFavorited(String userEmail, String hospitalName, String clinicCode) {
-        Users user = usersRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        return favoriteRepository.existsByUserIdAndHospitalNameAndClinicCode(user.getId(), hospitalName.trim(),
-                clinicCode.trim());
-    }
+        private Users findUserByEmail(String email) {
+                return usersRepository.findByEmail(email)
+                                .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다."));
+        }
 }
