@@ -7,6 +7,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.util.List;
@@ -60,6 +63,22 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .path(path)
                 .fieldErrors(details)
                 .build();
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    // JSON 파싱 실패 (잘못된 요청 본문)
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException ex,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        String path = extractPath(request);
+        ErrorResponse body = ErrorResponse.of(
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                "요청 본문을 파싱할 수 없습니다. JSON 형식을 확인해주세요.",
+                path);
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
@@ -117,6 +136,34 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 ex.getMessage(),
                 path);
         return new ResponseEntity<>(body, HttpStatus.CONFLICT);
+    }
+
+    // 경로변수/파라미터 타입 불일치 (예: UUID 자리에 잘못된 값)
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
+            WebRequest request) {
+        String path = extractPath(request);
+        String paramName = ex.getName();
+        String requiredType = ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown";
+        String message = String.format("파라미터 '%s'의 값이 올바르지 않습니다. (기대 타입: %s)", paramName, requiredType);
+        ErrorResponse body = ErrorResponse.of(
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                message,
+                path);
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    // Spring Security 접근 거부 (인증은 됐지만 권한 없음)
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, WebRequest request) {
+        String path = extractPath(request);
+        ErrorResponse body = ErrorResponse.of(
+                HttpStatus.FORBIDDEN.value(),
+                HttpStatus.FORBIDDEN.getReasonPhrase(),
+                "접근 권한이 없습니다.",
+                path);
+        return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
     }
 
     // 비즈니스 예외: 잘못된 요청 (400)

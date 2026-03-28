@@ -104,4 +104,10 @@ public class CommentService {
             throw new UnauthorizedException("본인의 댓글만 수정/삭제할 수 있습니다.");
         }
     }
+
+    private void validateScore(int score) {
+        if (score < 1 || score > 5) {
+            throw new IllegalArgumentException("평점은 1~5 사이여야 합니다.");
+        }
+    }
 }

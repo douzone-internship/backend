@@ -44,6 +44,12 @@ public class Comment {
     private LocalDateTime updatedAt;
 
     public void update(String comment, int score) {
+        if (comment == null || comment.isBlank()) {
+            throw new IllegalArgumentException("댓글 내용은 비어있을 수 없습니다.");
+        }
+        if (score < 1 || score > 5) {
+            throw new IllegalArgumentException("평점은 1~5 사이여야 합니다.");
+        }
         this.comment = comment;
         this.score = score;
         this.updatedAt = LocalDateTime.now();

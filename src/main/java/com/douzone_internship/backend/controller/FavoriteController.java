@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +35,7 @@ public class FavoriteController {
     })
     @PostMapping
     public ResponseEntity<FavoriteResponseDTO> addFavorite(@AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody FavoriteRequestDTO dto) {
+            @Valid @RequestBody FavoriteRequestDTO dto) {
         return ResponseEntity.ok(favoriteService.addFavorite(userDetails.getUsername(), dto));
     }
 
@@ -82,6 +83,7 @@ public class FavoriteController {
             @Parameter(description = "병원명", required = true) @RequestParam String hospitalName,
             @Parameter(description = "진료 코드", required = true) @RequestParam String clinicCode) {
         boolean result = favoriteService.isFavorited(userDetails.getUsername(), hospitalName, clinicCode);
+
         return ResponseEntity.ok(result);
     }
 }
