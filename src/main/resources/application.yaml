@@ -48,8 +48,9 @@ spring:
     active: local
 
   jpa:
+    database-platform:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
