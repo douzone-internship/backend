@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 
 import java.util.UUID;
+import org.hibernate.annotations.Nationalized;
 
 @Entity
 @Table(name = "users")
@@ -21,13 +22,18 @@ public class Users {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+
     private String email;
+
+    @Nationalized
     private String name;
+
     private String password;
 
     @Enumerated(EnumType.STRING)
     private Provider provider;
 
+    @Nationalized
     private String providerId;
 
     public Users update(String name) {

@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.*;
+import org.hibernate.annotations.Nationalized;
 
 @Entity
 @Table(name = "clinic")
@@ -19,6 +20,7 @@ public class Clinic {
     @Column(name = "clinic_cd", nullable = false)
     private String clinicCd;
 
+    @Nationalized
     @Column(name = "name", nullable = false)
     private String name;
 }

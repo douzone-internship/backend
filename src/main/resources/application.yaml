@@ -96,3 +96,6 @@ security:
       secret-key: ${JWT_SECRET_KEY:your-256-bit-secret-key-here-must-be-at-least-32-characters}
       access-expiration: ${JWT_ACCESS_EXPIRATION:3600000}
       refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+server:
+  forward-headers-strategy: native

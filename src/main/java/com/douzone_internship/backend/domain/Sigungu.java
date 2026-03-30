@@ -3,6 +3,7 @@ package com.douzone_internship.backend.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Nationalized;
 
 @Entity
 @Table(name = "sigungu")
@@ -18,6 +19,7 @@ public class Sigungu {
     @JoinColumn(name = "sido_cd", nullable = false)
     private Sido sido;
 
+    @Nationalized
     @Column(name = "name", nullable = false)
     private String name;
 }

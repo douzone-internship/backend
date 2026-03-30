@@ -9,6 +9,7 @@ import lombok.Builder;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import org.hibernate.annotations.Nationalized;
 
 @Entity
 @Table(name = "favorites", uniqueConstraints = {
@@ -29,12 +30,15 @@ public class Favorite {
     @JoinColumn(name = "user_id", nullable = false)
     private Users user;
 
+    @Nationalized
     @Column(name = "hospital_name", nullable = false)
     private String hospitalName;
 
+    @Nationalized
     @Column(name = "location")
     private String location;
 
+    @Nationalized
     @Column(name = "clinic_name", nullable = false)
     private String clinicName;
 

@@ -33,14 +33,12 @@ public class HomeService {
         @Transactional(readOnly = true)
         public ClinicListResponseDTO getClinicNameAndCode(String clinicName) {
                 List<Clinic> clinics = clinicRepository.findByNameContaining(clinicName);
-
                 List<ClinicResponseDTO> dtoList = clinics.stream()
                                 .map(c -> ClinicResponseDTO.builder()
                                                 .clinicCode(c.getClinicCd())
                                                 .clinicName(c.getName())
                                                 .build())
                                 .toList();
-
                 return ClinicListResponseDTO.builder()
                                 .clinicResponseDTOList(dtoList)
                                 .build();

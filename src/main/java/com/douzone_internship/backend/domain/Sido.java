@@ -6,6 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Nationalized;
 
 @Entity
 @Table(name = "sido")
@@ -17,6 +18,7 @@ public class Sido {
     @Column(name = "sido_cd", nullable = false)
     private String sidoCd;
 
+    @Nationalized
     @Column(name = "name", nullable = false)
     private String name;
 }

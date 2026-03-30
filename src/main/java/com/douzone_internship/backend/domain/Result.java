@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.UUID;
+import org.hibernate.annotations.Nationalized;
 
 @Entity
 @Table(name = "result")
@@ -27,12 +28,15 @@ public class Result {
     @JoinColumn(name = "search_id", nullable = false)
     private SearchLog searchLog;
 
+    @Nationalized
     @Column(name = "hospital_name", nullable = false)
     private String hospitalName;
 
+    @Nationalized
     @Column(name = "clinic_name", nullable = false)
     private String clinicName;
 
+    @Nationalized
     @Column(name = "hospital_addr", nullable = false)
     private String hospitalAddress;
 
@@ -42,6 +46,6 @@ public class Result {
     @Column(name = "min_price", nullable = false)
     private int minPrice;
 
-    @Column(name = "hospital_url", nullable = false)
+    @Column(name = "hospital_url")
     private String hospitalUrl;
 }

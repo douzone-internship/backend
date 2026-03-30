@@ -59,9 +59,15 @@ public class SecurityConfig {
                                                                         "{\"code\":401,\"message\":\"Authentication required\"}");
                                                 }))
                                 .oauth2Login(oauth2 -> oauth2
-                                                .userInfoEndpoint(userInfo -> userInfo
-                                                                .userService(customOAuth2UserService))
-                                                .successHandler(oAuth2SuccessHandler))
+                                        .authorizationEndpoint(authorization ->
+                                                authorization.baseUri("/api/oauth2/authorization")
+                                        )
+                                        .redirectionEndpoint(redirection ->
+                                                redirection.baseUri("/api/login/oauth2/code/*")
+                                        )
+                                        .userInfoEndpoint(userInfo -> userInfo
+                                                .userService(customOAuth2UserService))
+                                        .successHandler(oAuth2SuccessHandler))
                                 .logout(logout -> logout
                                                 .logoutUrl("/api/auth/logout")
                                                 .logoutSuccessHandler((request, response, authentication) -> {

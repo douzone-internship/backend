@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.UUID;
+import org.hibernate.annotations.Nationalized;
 
 @Entity
 @Table(name = "hospital")
@@ -23,12 +24,14 @@ public class Hospital {
     @JoinColumn(name = "sggu_cd", nullable = false)
     private Sigungu sigungu;
 
+    @Nationalized
     @Column(name = "name", nullable = false)
     private String name;
 
     @Column(name = "hospital_url")
     private String hospitalUrl;
 
+    @Nationalized
     @Column(name = "hospital_addr")
     private String hospitalAddress;
 

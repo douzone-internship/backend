@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import org.hibernate.annotations.Nationalized;
 
 @Builder
 @Entity
@@ -25,12 +26,14 @@ public class Comment {
     @JoinColumn(name = "user_id", nullable = false)
     private Users user;
 
+    @Nationalized
     @Column(name = "hospital_name", nullable = false)
     private String hospitalName;
 
     @Column(name = "clinic_code", nullable = false)
     private String clinicCode;
 
+    @Nationalized
     @Column(name = "comment", nullable = false, columnDefinition = "TEXT")
     private String comment;
 

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 import java.util.UUID;
+import org.hibernate.annotations.Nationalized;
 
 @Entity
 @Table(name = "ai_comment")
@@ -27,6 +28,7 @@ public class AiComment {
     @JoinColumn(name = "search_id", nullable = false)
     private SearchLog searchLog;
 
-    @Column(name = "comment", nullable = false, columnDefinition = "TEXT")
+    @Nationalized
+    @Column(name = "comment", nullable = false, columnDefinition = "NVARCHAR(MAX)")
     private String comment;
 }
