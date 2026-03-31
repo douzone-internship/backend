@@ -90,6 +90,12 @@ env:
 
   clinic-payment-url:
 
+# 배포 환경 설정
+app:
+  base-url: ${APP_BASE_URL:https://elomadoc.duckdns.org}
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:https://elomadoc.duckdns.org}
+
 security:
   jwt:
     token:

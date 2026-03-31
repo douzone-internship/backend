@@ -19,7 +19,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -30,6 +32,7 @@ public class SecurityConfig {
         private final UserDetailsService userDetailsService;
         private final CustomOAuth2UserService customOAuth2UserService;
         private final OAuth2SuccessHandler oAuth2SuccessHandler;
+        private final org.springframework.core.env.Environment env;
 
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -40,7 +43,7 @@ public class SecurityConfig {
                                                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)) // OAuth2를 위해
                                                                                                            // 세션 사용
                                 .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers("/api/auth/**", "/oauth2/**", "/login/**",
+                                                .requestMatchers("/api/auth/**", "/oauth2/**", "/login/**", "/api/login/**",
                                                                 "/api/home/**", "/home/**", "/api/result/**",
                                                                 "/result/**",
                                                                 "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
@@ -62,8 +65,9 @@ public class SecurityConfig {
                                         .authorizationEndpoint(authorization ->
                                                 authorization.baseUri("/api/oauth2/authorization")
                                         )
-                                        // redirectionEndpoint는 Spring Security 기본값 사용
-                                        // (/login/oauth2/code/*) - Google/Kakao Console 등록 URI와 일치
+                                        .redirectionEndpoint(redirection ->
+                                                redirection.baseUri("/api/login/oauth2/code/*")
+                                        )
                                         .userInfoEndpoint(userInfo -> userInfo
                                                 .userService(customOAuth2UserService))
                                         .successHandler(oAuth2SuccessHandler))
@@ -86,10 +90,14 @@ public class SecurityConfig {
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
-                // 개발 환경에서 프론트엔드 주소 명시
-                configuration.setAllowedOrigins(List.of(
-                                "http://localhost:3000",
-                                "http://127.0.0.1:3000"));
+                String allowedOrigins = env.getProperty("app.cors.allowed-origins");
+                if (allowedOrigins != null && !allowedOrigins.isBlank()) {
+                        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                                        .map(String::trim)
+                                        .filter(s -> !s.isEmpty())
+                                        .collect(Collectors.toList());
+                        configuration.setAllowedOrigins(origins);
+                }
                 configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
                 configuration.setAllowedHeaders(List.of("*"));
                 configuration.setAllowCredentials(true); // 쿠키/세션 사용
