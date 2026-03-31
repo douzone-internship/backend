@@ -6,9 +6,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-
 import java.util.UUID;
 import org.hibernate.annotations.Nationalized;
+
 
 @Entity
 @Table(name = "ai_comment")

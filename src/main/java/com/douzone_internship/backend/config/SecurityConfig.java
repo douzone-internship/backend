@@ -62,9 +62,8 @@ public class SecurityConfig {
                                         .authorizationEndpoint(authorization ->
                                                 authorization.baseUri("/api/oauth2/authorization")
                                         )
-                                        .redirectionEndpoint(redirection ->
-                                                redirection.baseUri("/api/login/oauth2/code/*")
-                                        )
+                                        // redirectionEndpoint는 Spring Security 기본값 사용
+                                        // (/login/oauth2/code/*) - Google/Kakao Console 등록 URI와 일치
                                         .userInfoEndpoint(userInfo -> userInfo
                                                 .userService(customOAuth2UserService))
                                         .successHandler(oAuth2SuccessHandler))

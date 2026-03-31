@@ -31,17 +31,22 @@ public class JwtFilter extends OncePerRequestFilter {
 
         // 2. 토큰 유효성 검사
         if (token != null && tokenProvider.validateToken(token)) {
-            // 3. 토큰에서 사용자 정보 추출
-            String username = tokenProvider.getSubject(token);
+            try {
+                // 3. 토큰에서 사용자 정보 추출
+                String username = tokenProvider.getSubject(token);
 
-            // 4. 사용자 세부 정보 로드
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                // 4. 사용자 세부 정보 로드
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-            // 5. Authentication 객체 생성 및 SecurityContext에 저장
-            if (userDetails != null) {
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                // 5. Authentication 객체 생성 및 SecurityContext에 저장
+                if (userDetails != null) {
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
+            } catch (org.springframework.security.core.userdetails.UsernameNotFoundException e) {
+                // 토큰은 유효하지만 DB에 유저가 없는 경우 - 인증 없이 통과 (401로 처리됨)
+                logger.warn("JWT token valid but user not found: " + e.getMessage());
             }
         }
 
