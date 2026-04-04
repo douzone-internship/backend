@@ -34,7 +34,7 @@ public class Comment {
     private String clinicCode;
 
     @Nationalized
-    @Column(name = "comment", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "comment", nullable = false, columnDefinition = "NVARCHAR(MAX)")
     private String comment;
 
     @Column(name = "score", nullable = false)
