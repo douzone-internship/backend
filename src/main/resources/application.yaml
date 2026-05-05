@@ -95,12 +95,14 @@ env:
 app:
   base-url: ${APP_BASE_URL:https://elomadoc.duckdns.org}
   cors:
+    # 콤마로 구분된 origin 목록 (예: https://a.com,https://b.com)
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:https://elomadoc.duckdns.org}
 
 security:
   jwt:
     token:
-      secret-key: ${JWT_SECRET_KEY:your-256-bit-secret-key-here-must-be-at-least-32-characters}
+      # 기본값을 두지 않아 환경변수 미설정 시 기동 실패하도록 함 (운영 보안)
+      secret-key: ${JWT_SECRET_KEY}
       access-expiration: ${JWT_ACCESS_EXPIRATION:3600000}
       refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
