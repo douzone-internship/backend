@@ -5,6 +5,7 @@ import com.douzone_internship.backend.auth.JwtTokenProvider;
 import com.douzone_internship.backend.auth.OAuth2SuccessHandler;
 import com.douzone_internship.backend.service.CustomOAuth2UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,6 +20,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -30,6 +32,9 @@ public class SecurityConfig {
         private final UserDetailsService userDetailsService;
         private final CustomOAuth2UserService customOAuth2UserService;
         private final OAuth2SuccessHandler oAuth2SuccessHandler;
+
+        @Value("${app.cors.allowed-origins}")
+        private String allowedOrigins;
 
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -88,10 +93,12 @@ public class SecurityConfig {
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
-                // 개발 환경에서 프론트엔드 주소 명시
-                configuration.setAllowedOrigins(List.of(
-                                "http://localhost:3000",
-                                "http://127.0.0.1:3000"));
+                // 환경별 허용 origin 설정 (application.yaml의 app.cors.allowed-origins)
+                List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                                .map(String::trim)
+                                .filter(s -> !s.isEmpty())
+                                .toList();
+                configuration.setAllowedOrigins(origins);
                 configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
                 configuration.setAllowedHeaders(List.of("*"));
                 configuration.setAllowCredentials(true); // 쿠키/세션 사용

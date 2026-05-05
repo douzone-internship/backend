@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class jsonScheduler {
+public class JsonScheduler {
 
     private final JsonBatchService jsonBatchService;
 
