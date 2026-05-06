@@ -4,6 +4,7 @@ import com.douzone_internship.backend.auth.JwtFilter;
 import com.douzone_internship.backend.auth.JwtTokenProvider;
 import com.douzone_internship.backend.auth.OAuth2SuccessHandler;
 import com.douzone_internship.backend.service.CustomOAuth2UserService;
+import com.douzone_internship.backend.service.RefreshTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -32,6 +33,7 @@ public class SecurityConfig {
         private final UserDetailsService userDetailsService;
         private final CustomOAuth2UserService customOAuth2UserService;
         private final OAuth2SuccessHandler oAuth2SuccessHandler;
+        private final RefreshTokenService refreshTokenService;
 
         @Value("${app.cors.allowed-origins}")
         private String allowedOrigins;
@@ -74,17 +76,8 @@ public class SecurityConfig {
                                         .userInfoEndpoint(userInfo -> userInfo
                                                 .userService(customOAuth2UserService))
                                         .successHandler(oAuth2SuccessHandler))
-                                .logout(logout -> logout
-                                                .logoutUrl("/api/auth/logout")
-                                                .logoutSuccessHandler((request, response, authentication) -> {
-                                                        response.setStatus(200);
-                                                        response.setContentType("application/json");
-                                                        response.getWriter().write("{\"message\":\"로그아웃 성공\"}");
-                                                })
-                                                .deleteCookies("JSESSIONID")
-                                                .invalidateHttpSession(true)
-                                                .clearAuthentication(true))
-                                .addFilterBefore(new JwtFilter(tokenProvider, userDetailsService),
+                                .logout(logout -> logout.disable())
+                                .addFilterBefore(new JwtFilter(tokenProvider, userDetailsService, refreshTokenService),
                                                 UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();

@@ -24,6 +24,9 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
+
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
@@ -81,7 +84,7 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
                 .build()
                 .toUri();
 
-        String jsonResponse = restTemplate.getForObject(uri, String.class);
+        String jsonResponse = callOpenDataApi(uri);
 
         if (Objects.requireNonNull(jsonResponse).isEmpty() || isEmptyResponse(jsonResponse)) {
             return ResultListResponseDTO.builder()
@@ -129,6 +132,12 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
         resultSaveService.saveResultAsync(resultRequest, resultItems, aiComment);
 
         return response;
+    }
+
+    @Retry(name = "openDataApi")
+    @CircuitBreaker(name = "openDataApi")
+    public String callOpenDataApi(URI uri) {
+        return restTemplate.getForObject(uri, String.class);
     }
 
     private String extractKeyword(ResultRequest resultRequest) {

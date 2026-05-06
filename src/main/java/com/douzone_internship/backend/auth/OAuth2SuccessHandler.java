@@ -1,5 +1,6 @@
 package com.douzone_internship.backend.auth;
 
+import com.douzone_internship.backend.service.RefreshTokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import java.io.IOException;
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtTokenProvider tokenProvider;
+    private final RefreshTokenService refreshTokenService;
 
     @Value("${app.oauth2.frontend-redirect-uri}")
     private String frontendRedirectUri;
@@ -46,11 +48,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             return;
         }
 
-        // JWT 토큰 생성 (이메일 사용)
         String token = tokenProvider.createAccessToken(email);
+        String refreshToken = tokenProvider.createRefreshToken(email);
+        refreshTokenService.saveRefreshToken(email, refreshToken);
 
-        // 프론트엔드 콜백 페이지로 리다이렉트 (토큰 포함)
-        String redirectUrl = frontendRedirectUri + "?token=" + token;
+        String redirectUrl = frontendRedirectUri + "?token=" + token + "&refreshToken=" + refreshToken;
 
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }

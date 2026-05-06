@@ -2,8 +2,10 @@ package com.douzone_internship.backend.service;
 
 import com.douzone_internship.backend.auth.JwtTokenProvider;
 import com.douzone_internship.backend.domain.Users;
+import com.douzone_internship.backend.dto.response.TokenResponseDTO;
 import com.douzone_internship.backend.exceptions.DuplicateResourceException;
 import com.douzone_internship.backend.exceptions.ResourceNotFoundException;
+import com.douzone_internship.backend.exceptions.UnauthorizedException;
 import com.douzone_internship.backend.repository.UsersRepository;
 import com.douzone_internship.backend.repository.CommentRepository;
 import com.douzone_internship.backend.repository.FavoriteRepository;
@@ -28,8 +30,9 @@ public class AuthService {
     private final CommentRepository commentRepository;
     private final JwtTokenProvider tokenProvider;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenService refreshTokenService;
 
-    public String login(String email, String password) {
+    public TokenResponseDTO login(String email, String password) {
         Users user = usersRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
 
@@ -41,7 +44,35 @@ public class AuthService {
             throw new IllegalArgumentException("잘못된 비밀번호입니다.");
         }
 
-        return tokenProvider.createAccessToken(user.getEmail());
+        return issueTokens(user.getEmail());
+    }
+
+    public TokenResponseDTO refreshAccessToken(String refreshToken) {
+        if (!tokenProvider.validateToken(refreshToken)) {
+            throw new UnauthorizedException("유효하지 않은 Refresh Token입니다.");
+        }
+
+        String email = tokenProvider.getSubject(refreshToken);
+        String storedToken = refreshTokenService.getRefreshToken(email);
+
+        if (storedToken == null || !storedToken.equals(refreshToken)) {
+            throw new UnauthorizedException("Refresh Token이 일치하지 않습니다.");
+        }
+
+        return issueTokens(email);
+    }
+
+    public void logout(String accessToken, String email) {
+        long remaining = tokenProvider.getRemainingExpiration(accessToken);
+        refreshTokenService.blacklistAccessToken(accessToken, remaining);
+        refreshTokenService.deleteRefreshToken(email);
+    }
+
+    private TokenResponseDTO issueTokens(String email) {
+        String accessToken = tokenProvider.createAccessToken(email);
+        String refreshToken = tokenProvider.createRefreshToken(email);
+        refreshTokenService.saveRefreshToken(email, refreshToken);
+        return new TokenResponseDTO(accessToken, refreshToken);
     }
 
     public void signup(String email, String password, String name) {

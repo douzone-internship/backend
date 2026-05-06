@@ -108,3 +108,33 @@ security:
 
 server:
   forward-headers-strategy: native
+
+# Resilience4j 설정
+resilience4j:
+  retry:
+    instances:
+      openDataApi:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+          - java.net.SocketTimeoutException
+      geminiApi:
+        max-attempts: 2
+        wait-duration: 2s
+        retry-exceptions:
+          - java.io.IOException
+          - com.google.genai.errors.ServerException
+  circuitbreaker:
+    instances:
+      openDataApi:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+      geminiApi:
+        sliding-window-size: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 60s
+        permitted-number-of-calls-in-half-open-state: 2
