@@ -11,4 +11,7 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
     List<Comment> findByUserOrderByCreatedAtDesc(Users user);
 
     List<Comment> findByHospitalNameAndClinicCodeOrderByCreatedAtDesc(String hospitalName, String clinicCode);
+
+    List<Comment> findByHospitalNameInAndClinicCodeOrderByCreatedAtDesc(
+            List<String> hospitalNames, String clinicCode);
 }
