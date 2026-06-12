@@ -1,6 +1,9 @@
 package com.douzone_internship.backend.service;
 
 import com.douzone_internship.backend.dto.response.ResultItemDTO;
+import com.douzone_internship.backend.service.ai.PriceStats;
+import com.douzone_internship.backend.service.ai.PriceStatsCalculator;
+import com.douzone_internship.backend.service.ai.PromptBuilder;
 import com.google.genai.Client;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -14,7 +17,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 
 @Service
@@ -29,15 +31,14 @@ public class AiService {
     private String userPrompt;
 
     private final Client geminiClient;
+    private final PriceStatsCalculator priceStatsCalculator;
+    private final PromptBuilder promptBuilder;
 
     @Retry(name = "geminiApi")
     @CircuitBreaker(name = "geminiApi", fallbackMethod = "aiApiFallback")
     public String callAiApi(List<ResultItemDTO> resultItems) {
-        String itemsData = resultItems.stream()
-                .map(item -> String.format("- %s", item.toString()))
-                .collect(Collectors.joining("\n"));
-
-        String formattedUserPrompt = userPrompt.replace("{{resultItems}}", itemsData);
+        PriceStats stats = priceStatsCalculator.compute(resultItems);
+        String formattedUserPrompt = promptBuilder.build(userPrompt, resultItems, stats);
 
         GenerateContentConfig config =
                 GenerateContentConfig.builder()
