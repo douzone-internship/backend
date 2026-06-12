@@ -1,6 +1,7 @@
 package com.douzone_internship.backend.service;
 
 import com.douzone_internship.backend.dto.response.ResultItemDTO;
+import com.douzone_internship.backend.service.ai.OutputValidator;
 import com.douzone_internship.backend.service.ai.PriceStats;
 import com.douzone_internship.backend.service.ai.PriceStatsCalculator;
 import com.douzone_internship.backend.service.ai.PromptBuilder;
@@ -33,6 +34,7 @@ public class AiService {
     private final Client geminiClient;
     private final PriceStatsCalculator priceStatsCalculator;
     private final PromptBuilder promptBuilder;
+    private final OutputValidator outputValidator;
 
     @Retry(name = "geminiApi")
     @CircuitBreaker(name = "geminiApi", fallbackMethod = "aiApiFallback")
@@ -50,7 +52,7 @@ public class AiService {
                 formattedUserPrompt,
                 config
         );
-        return response.text();
+        return outputValidator.validate(response.text());
     }
 
     private String aiApiFallback(List<ResultItemDTO> resultItems, Throwable t) {
