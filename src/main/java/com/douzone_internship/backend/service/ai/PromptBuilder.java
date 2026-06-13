@@ -13,12 +13,19 @@ public class PromptBuilder {
 
     private static final String PLACEHOLDER = "{{resultItems}}";
 
-    public String build(String template, List<ResultItemDTO> items, PriceStats stats) {
+    public String build(String template, List<ResultItemDTO> items, PriceStats stats, String clinicCode) {
         if (template == null || !template.contains(PLACEHOLDER)) {
             log.warn("user-prompt 템플릿에 {} 자리표시자가 없습니다. 통계/목록이 주입되지 않습니다.", PLACEHOLDER);
         }
-        String block = formatStats(stats) + "\n\n" + formatItems(items);
+        String block = formatClinicCode(clinicCode) + "\n\n"
+                + formatStats(stats) + "\n\n"
+                + formatItems(items);
         return template == null ? block : template.replace(PLACEHOLDER, block);
+    }
+
+    private String formatClinicCode(String code) {
+        String value = code == null || code.isBlank() ? "미지정" : code;
+        return "[시술 코드] " + value;
     }
 
     private String formatStats(PriceStats s) {

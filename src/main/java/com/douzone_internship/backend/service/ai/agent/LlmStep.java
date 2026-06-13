@@ -4,7 +4,11 @@ import java.util.Map;
 
 public sealed interface LlmStep {
 
-    record ToolCall(String name, Map<String, Object> args) implements LlmStep {}
+    record ToolCall(String name, Map<String, Object> args) implements LlmStep {
+        public ToolCall {
+            args = args == null ? Map.of() : Map.copyOf(args);
+        }
+    }
 
     record FinalText(String text) implements LlmStep {}
 }

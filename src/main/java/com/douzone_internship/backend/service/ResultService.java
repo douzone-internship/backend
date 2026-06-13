@@ -121,7 +121,7 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
                 })
                 .toList();
 
-        String aiComment = aiService.callAiApi(resultItems);
+        String aiComment = aiService.callAiApi(resultItems, resultRequest.clinicCode());
 
         ResultListResponseDTO response = ResultListResponseDTO.builder()
                 .resultCount(resultItems.size())
