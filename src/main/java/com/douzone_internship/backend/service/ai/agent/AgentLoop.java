@@ -21,23 +21,29 @@ public class AgentLoop {
 
     static final int MAX_STEPS = 5;
     static final int TOKEN_BUDGET = 8000;
-    private static final String MODEL = "gemini-2.5-flash";
 
     private final ToolRegistry toolRegistry;
     private final Client geminiClient;
     private final ObjectMapper objectMapper;
     private final String systemPrompt;
+    private final String model;
+    /** 라운드(LLM 호출) 사이 지연. 기본 0이라 프로덕션 영향 없음. rate limit 회피용 스로틀. */
+    private final long callDelayMs;
 
     public AgentLoop(
             ToolRegistry toolRegistry,
             Client geminiClient,
             ObjectMapper objectMapper,
-            @Value("${system-prompt}") String systemPrompt
+            @Value("${system-prompt}") String systemPrompt,
+            @Value("${agent.model:gemini-2.5-flash}") String model,
+            @Value("${agent.call-delay-ms:0}") long callDelayMs
     ) {
         this.toolRegistry = toolRegistry;
         this.geminiClient = geminiClient;
         this.objectMapper = objectMapper;
         this.systemPrompt = systemPrompt;
+        this.model = model;
+        this.callDelayMs = callDelayMs;
     }
 
     public String run(String userPrompt) {
@@ -85,13 +91,15 @@ public class AgentLoop {
     }
 
     private LlmStep callLlm(AgentContext ctx) {
+        throttle();
+
         GenerateContentConfig config = GenerateContentConfig.builder()
                 .systemInstruction(Content.fromParts(Part.fromText(systemPrompt)))
                 .tools(toolRegistry.tools())
                 .build();
 
         GenerateContentResponse response = geminiClient.models.generateContent(
-                MODEL, ctx.getConversation(), config);
+                model, ctx.getConversation(), config);
 
         response.usageMetadata().ifPresent(meta -> {
             int prompt = meta.promptTokenCount().orElse(0);
@@ -146,6 +154,17 @@ public class AgentLoop {
         } catch (Exception e) {
             log.warn("response.text() 추출 실패: {}", e.getMessage());
             return "";
+        }
+    }
+
+    private void throttle() {
+        if (callDelayMs <= 0) {
+            return;
+        }
+        try {
+            Thread.sleep(callDelayMs);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 }
