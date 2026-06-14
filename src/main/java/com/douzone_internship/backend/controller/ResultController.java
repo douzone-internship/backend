@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.security.NoSuchAlgorithmException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -29,8 +28,7 @@ public class ResultController {
             @ApiResponse(responseCode = "400", description = "입력값 검증 실패")
     })
     @PostMapping("/reports")
-    public ResponseEntity<ResultListResponseDTO> generateReport(@Validated @RequestBody ResultRequest resultRequest)
-            throws NoSuchAlgorithmException {
+    public ResponseEntity<ResultListResponseDTO> generateReport(@Validated @RequestBody ResultRequest resultRequest) {
         return ResponseEntity.ok(resultService.generateResult(resultRequest));
     }
 }

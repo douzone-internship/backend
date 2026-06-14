@@ -5,12 +5,8 @@ import com.douzone_internship.backend.dto.request.ResultRequest;
 import com.douzone_internship.backend.dto.response.RawClinicPaymentResponseDTO;
 import com.douzone_internship.backend.dto.response.ResultItemDTO;
 import com.douzone_internship.backend.dto.response.ResultListResponseDTO;
-import com.douzone_internship.backend.exceptions.ResourceNotFoundException;
-import com.douzone_internship.backend.repository.AiCommentRepository;
 import com.douzone_internship.backend.repository.HospitalRepository;
-import com.douzone_internship.backend.repository.ResultRepository;
-import com.douzone_internship.backend.repository.SearchLogRepository;
-import com.douzone_internship.backend.util.SHA256;
+import com.douzone_internship.backend.service.ai.cache.AiResponseCache;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +24,6 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 
 import java.net.URI;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -47,22 +42,16 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
     private final RestTemplate restTemplate;
     private final HospitalRepository hospitalRepository;
     private final ResultSaveService resultSaveService;
-    private final SearchLogRepository searchLogRepository;
-    private final ResultRepository resultRepository;
-    private final AiCommentRepository aiCommentRepository;
     private final AiService aiService;
-    private final SHA256 sha256;
+    private final AiResponseCache aiResponseCache;
 
     @Transactional(readOnly = true)
-    public ResultListResponseDTO generateResult(ResultRequest resultRequest)
-            throws NoSuchAlgorithmException {
+    public ResultListResponseDTO generateResult(ResultRequest resultRequest) {
 
-        String keyword = extractKeyword(resultRequest);
-        String hashedKeyword = sha256.encrypt(keyword);
-
-        // DB에 캐싱 여부 확인
-        if (checkSearchLog(resultRequest, hashedKeyword)) {
-            return getCachedResult(hashedKeyword);
+        String cacheKey = aiResponseCache.buildKey(resultRequest);
+        Optional<ResultListResponseDTO> cached = aiResponseCache.load(cacheKey);
+        if (cached.isPresent()) {
+            return cached.get();
         }
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
@@ -138,44 +127,6 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
     @CircuitBreaker(name = "openDataApi")
     public String callOpenDataApi(URI uri) {
         return restTemplate.getForObject(uri, String.class);
-    }
-
-    private String extractKeyword(ResultRequest resultRequest) {
-        StringBuilder keyword = new StringBuilder();
-        keyword.append(resultRequest.clinicCode());
-        keyword.append(resultRequest.sidoCode());
-        keyword.append(resultRequest.sigguCode() == null ? "null" : resultRequest.sigguCode());
-        keyword.append(resultRequest.hospitalName() == null ? "null" : resultRequest.hospitalName());
-        return keyword.toString();
-    }
-
-    private ResultListResponseDTO getCachedResult(String keyword) {
-        SearchLog searchLog = searchLogRepository.findBySearchKeyword(keyword)
-                .orElseThrow(() -> new ResourceNotFoundException("캐싱된 검색 결과를 찾을 수 없습니다."));
-
-        List<ResultItemDTO> cachedResults = resultRepository.findBySearchLogWithFetch(searchLog)
-                .stream()
-                .map(result -> new ResultItemDTO(
-                        result.getHospitalName(),
-                        result.getHospitalAddress(),
-                        result.getClinicName(),
-                        result.getMinPrice(),
-                        result.getMaxPrice()))
-                .toList();
-
-        String cachedAiComment = aiCommentRepository.findBySearchLog(searchLog)
-                .map(AiComment::getComment)
-                .orElse("");
-
-        return ResultListResponseDTO.builder()
-                .resultCount(cachedResults.size())
-                .list(cachedResults)
-                .aiComment(cachedAiComment)
-                .build();
-    }
-
-    private boolean checkSearchLog(ResultRequest resultRequest, String keyWord) {
-        return searchLogRepository.existsSearchLogBySearchKeyword(keyWord);
     }
 
     private boolean isEmptyResponse(String json) {
