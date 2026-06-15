@@ -14,4 +14,6 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
 
     List<Comment> findByHospitalNameInAndClinicCodeOrderByCreatedAtDesc(
             List<String> hospitalNames, String clinicCode);
+
+    long countByClinicCode(String clinicCode);
 }

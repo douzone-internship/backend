@@ -6,6 +6,7 @@ import com.douzone_internship.backend.dto.request.ResultRequest;
 import com.douzone_internship.backend.dto.response.ResultItemDTO;
 import com.douzone_internship.backend.dto.response.ResultListResponseDTO;
 import com.douzone_internship.backend.repository.AiCommentRepository;
+import com.douzone_internship.backend.repository.CommentRepository;
 import com.douzone_internship.backend.repository.ResultRepository;
 import com.douzone_internship.backend.repository.SearchLogRepository;
 import com.douzone_internship.backend.util.SHA256;
@@ -26,13 +27,18 @@ public class AiResponseCache {
     private final SearchLogRepository searchLogRepository;
     private final AiCommentRepository aiCommentRepository;
     private final ResultRepository resultRepository;
+    private final CommentRepository commentRepository;
     private final SHA256 sha256;
 
     public String buildPlainKeyword(ResultRequest req) {
+        // 해당 진료코드의 후기 수를 키에 포함 → 후기가 추가되면 키가 바뀌어 캐시가 자동 무효화된다.
+        // 새 후기가 달려도 옛 AI 리포트가 반환되던 stale 문제를 방지.
+        long commentCount = commentRepository.countByClinicCode(nullSafe(req.clinicCode()));
         return nullSafe(req.clinicCode())
                 + nullSafe(req.sidoCode())
                 + nullSafe(req.sigguCode())
-                + nullSafe(req.hospitalName());
+                + nullSafe(req.hospitalName())
+                + "|c=" + commentCount;
     }
 
     public String buildKey(ResultRequest req) {
