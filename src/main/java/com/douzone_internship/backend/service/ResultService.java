@@ -118,7 +118,11 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
                 .aiComment(aiComment)
                 .build();
 
-        resultSaveService.saveResultAsync(resultRequest, resultItems, aiComment);
+        // AI 호출이 실패(폴백)한 경우 캐싱하지 않는다. 실패 응답을 저장하면
+        // 다음 동일 검색에서 캐시 hit으로 "제공 불가" 메시지가 영구 반환되는 문제가 생긴다.
+        if (!aiService.isFallback(aiComment)) {
+            resultSaveService.saveResultAsync(resultRequest, resultItems, aiComment);
+        }
 
         return response;
     }

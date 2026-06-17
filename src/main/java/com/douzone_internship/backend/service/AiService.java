@@ -21,6 +21,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AiService {
 
+    /** AI 호출 실패 시 반환하는 폴백 메시지. 이 값이면 캐시(DB)에 저장하지 않는다. */
+    public static final String FALLBACK_MESSAGE = "AI 분석을 일시적으로 제공할 수 없습니다.";
+
     @Value("${user-prompt}")
     private String userPrompt;
 
@@ -41,6 +44,11 @@ public class AiService {
 
     private String aiApiFallback(List<ResultItemDTO> resultItems, String clinicCode, Throwable t) {
         log.error("AI API 호출 실패, fallback 실행", t);
-        return "AI 분석을 일시적으로 제공할 수 없습니다.";
+        return FALLBACK_MESSAGE;
+    }
+
+    /** AI 호출이 폴백(실패)으로 반환된 응답인지 판별. 실패 응답은 캐싱하면 안 된다. */
+    public boolean isFallback(String aiComment) {
+        return FALLBACK_MESSAGE.equals(aiComment);
     }
 }
