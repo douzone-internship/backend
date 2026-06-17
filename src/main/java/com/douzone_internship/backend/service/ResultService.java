@@ -14,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -45,7 +44,9 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
     private final AiService aiService;
     private final AiResponseCache aiResponseCache;
 
-    @Transactional(readOnly = true)
+    // @Transactional을 메서드 전체에 걸지 않는다. 중간에 외부 OpenData API 호출과
+    // Gemini 에이전트 루프(수십 초 소요)가 있어, 트랜잭션으로 묶으면 그 시간 동안
+    // DB 커넥션을 점유해 커넥션 풀 leak이 발생한다. 각 DB 작업은 자체 트랜잭션으로 처리된다.
     public ResultListResponseDTO generateResult(ResultRequest resultRequest) {
 
         String cacheKey = aiResponseCache.buildKey(resultRequest);
@@ -118,9 +119,11 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
                 .aiComment(aiComment)
                 .build();
 
-        // AI 호출이 실패(폴백)한 경우 캐싱하지 않는다. 실패 응답을 저장하면
-        // 다음 동일 검색에서 캐시 hit으로 "제공 불가" 메시지가 영구 반환되는 문제가 생긴다.
-        if (!aiService.isFallback(aiComment)) {
+        // AI 호출이 실패(폴백)했거나 빈 응답인 경우 캐싱하지 않는다.
+        // 실패/빈 응답을 저장하면 다음 동일 검색에서 캐시 hit으로 잘못된 결과가 영구 반환된다.
+        boolean savable = !aiService.isFallback(aiComment)
+                && aiComment != null && !aiComment.isBlank();
+        if (savable) {
             resultSaveService.saveResultAsync(resultRequest, resultItems, aiComment);
         }
 
