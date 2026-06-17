@@ -5,9 +5,12 @@ import com.google.genai.Client;
 import com.google.genai.types.Candidate;
 import com.google.genai.types.Content;
 import com.google.genai.types.FunctionCall;
+import com.google.genai.types.FunctionCallingConfig;
+import com.google.genai.types.FunctionCallingConfigMode;
 import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentResponse;
 import com.google.genai.types.Part;
+import com.google.genai.types.ToolConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -93,10 +96,21 @@ public class AgentLoop {
     private LlmStep callLlm(AgentContext ctx) {
         throttle();
 
-        GenerateContentConfig config = GenerateContentConfig.builder()
+        GenerateContentConfig.Builder configBuilder = GenerateContentConfig.builder()
                 .systemInstruction(Content.fromParts(Part.fromText(systemPrompt)))
-                .tools(toolRegistry.tools())
-                .build();
+                .tools(toolRegistry.tools());
+
+        // 첫 라운드는 도구 호출을 강제(ANY)한다. 경량 모델이 도구 호출을 건너뛰고
+        // 후기·평점을 지어내는 환각을 원천 차단. 이후 라운드는 AUTO로 최종 답변을 허용.
+        if (ctx.getStepCount() == 1) {
+            configBuilder.toolConfig(ToolConfig.builder()
+                    .functionCallingConfig(FunctionCallingConfig.builder()
+                            .mode(FunctionCallingConfigMode.Known.ANY)
+                            .build())
+                    .build());
+        }
+
+        GenerateContentConfig config = configBuilder.build();
 
         GenerateContentResponse response = geminiClient.models.generateContent(
                 model, ctx.getConversation(), config);
