@@ -1,0 +1,57 @@
+# 로컬 Docker 부하테스트 전용 프로필.
+# 실제 시크릿(Gemini API key, 공공데이터 API key)은 .env.loadtest(gitignore)에서
+# 환경변수로 주입한다. 이 파일 자체는 커밋 대상이며 시크릿을 담지 않는다.
+
+observability:
+  actuator-prometheus-public: true
+
+spring:
+  datasource:
+    url: jdbc:postgresql://loadtest-db:5432/loadtest
+    username: loadtest
+    password: loadtest
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      # 운영과 동일한 풀 크기를 유지해야 부하테스트 결과가 의미를 가짐
+      maximum-pool-size: 5
+      minimum-idle: 2
+      max-lifetime: 600000
+      idle-timeout: 300000
+      connection-timeout: 20000
+      keepalive-time: 120000
+      validation-timeout: 5000
+      connection-test-query: SELECT 1
+      leak-detection-threshold: 60000
+
+  jpa:
+    # 운영은 validate(스키마는 별도 관리)이지만, 여기는 매번 새로 뜨는 일회용 DB이므로 update
+    hibernate:
+      ddl-auto: update
+
+system-prompt: "너는 비급여 진료를 가격을 분석하고 병원을 추천해주는 에이전트야 유저 프롬프트에 들어온 input에 있는 정보를 살펴보고
+최저가, 최고가, 평균가, 추천 병원 및 평가, 전반적인 시술에 관한 평가 등을 제공해 가격도 중요하지만 현재 시점까지 알려저 있는 병원의 후기나 평점을 참고해서 대답해
+약 3 ~ 5개 정도의 병원을 추천하되 너무 자세히 기술할 필요는 없어. 다만 큰 문제가 있던 병원은 반드시 언급해야해 총 길이는 8줄 이하로 작성해 그리고 ** 같은 특수 문자는 절대 사용하지마"
+
+user-prompt: "{{resultItems}}"
+
+api-url: https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst
+
+api-key: ${GEMINI_API_KEY}
+
+env:
+  open-data-key: ${OPEN_DATA_KEY}
+
+  clinic-code-url: https://apis.data.go.kr/B551182/nonPaymentDamtInfoService/getNonPaymentItemCodeList2
+
+  hospital-list-url: https://apis.data.go.kr/B551182/hospInfoServicev2/getHospBasisList
+
+  clinic-payment-url: http://apis.data.go.kr/B551182/nonPaymentDamtInfoService/getNonPaymentItemHospList2
+
+app:
+  oauth2:
+    frontend-redirect-uri: "http://localhost:3000/oauth/callback"
+
+security:
+  jwt:
+    token:
+      secret-key: ${JWT_SECRET_KEY:loadtest-only-secret-key-do-not-use-in-prod!!}

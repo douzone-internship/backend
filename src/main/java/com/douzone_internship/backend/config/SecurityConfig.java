@@ -38,6 +38,9 @@ public class SecurityConfig {
         @Value("${app.cors.allowed-origins}")
         private String allowedOrigins;
 
+        @Value("${observability.actuator-prometheus-public:false}")
+        private boolean actuatorPrometheusPublic;
+
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
                 http
@@ -46,17 +49,25 @@ public class SecurityConfig {
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)) // OAuth2를 위해
                                                                                                            // 세션 사용
-                                .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers("/api/auth/**", "/oauth2/**", "/login/**",
+                                .authorizeHttpRequests(auth -> {
+                                                auth.requestMatchers("/api/auth/**", "/oauth2/**", "/login/**",
                                                                 "/api/home/**", "/home/**", "/api/result/**",
                                                                 "/result/**",
                                                                 "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
                                                                 "/swagger-resources/**")
-                                                .permitAll() // 인증, 홈, 결과, Swagger 관련 경로 모두 허용
-                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                                .permitAll(); // 인증, 홈, 결과, Swagger 관련 경로 모두 허용
+                                                auth.requestMatchers(org.springframework.http.HttpMethod.GET,
                                                                 "/api/comments")
-                                                .permitAll() // 병원별 댓글 조회는 비로그인 허용
-                                                .anyRequest().authenticated())
+                                                .permitAll(); // 병원별 댓글 조회는 비로그인 허용
+                                                auth.requestMatchers("/actuator/health/**",
+                                                "/actuator/info").permitAll();
+                                                // 로드테스트 프로필에서만 Prometheus가 인증 없이 스크레이핑할 수 있도록 허용
+                                                if (actuatorPrometheusPublic) {
+                                                        auth.requestMatchers("/actuator/prometheus").permitAll();
+                                                }
+                                                auth.requestMatchers("/actuator/**").authenticated();
+                                                auth.anyRequest().authenticated();
+                                        })
                                 .exceptionHandling(exception -> exception
                                                 .authenticationEntryPoint((request, response, authException) -> {
                                                         // REST API - 인증 실패 시 리다이렉트 대신 401 반환

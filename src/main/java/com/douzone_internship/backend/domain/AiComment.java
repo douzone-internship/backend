@@ -7,7 +7,8 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import java.util.UUID;
-import org.hibernate.annotations.Nationalized;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 
 @Entity
@@ -28,7 +29,7 @@ public class AiComment {
     @JoinColumn(name = "search_id", nullable = false)
     private SearchLog searchLog;
 
-    @Nationalized
-    @Column(name = "comment", nullable = false, columnDefinition = "NVARCHAR(MAX)")
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
+    @Column(name = "comment", nullable = false)
     private String comment;
 }

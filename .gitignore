@@ -41,6 +41,7 @@ out/
 
 ### ENV ###
 application-local.yaml
+.env.loadtest
 
 ### DATA ###
 data/
