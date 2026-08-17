@@ -108,6 +108,11 @@ security:
 
 server:
   forward-headers-strategy: native
+  tomcat:
+    mbeanregistry:
+      # 켜지 않으면 tomcat_threads_busy_threads / tomcat_threads_current_threads 가
+      # 아예 수집되지 않는다(세션 메트릭만 나옴). 스레드풀 적체를 보려면 필수.
+      enabled: true
 
 # Resilience4j 설정
 resilience4j:
@@ -140,6 +145,10 @@ resilience4j:
         permitted-number-of-calls-in-half-open-state: 2
 
 observability:
+  # /actuator/prometheus 를 인증 없이 열지 여부.
+  # 운영에서는 management.server.port 를 8080과 분리하고(그 포트를 호스트에 publish하지 않음)
+  # 이 값을 true로 둔다 → 공개 포트에는 actuator가 아예 없고, Prometheus는 도커 네트워크
+  # 내부에서만 스크레이핑한다. 기본값 false는 "실수로 공개되는 일은 없다"를 보장하는 안전망.
   actuator-prometheus-public: false
 
 management:
@@ -156,3 +165,17 @@ management:
   health:
     defaults:
       enabled: true
+  metrics:
+    tags:
+      # 여러 인스턴스를 한 Prometheus로 모을 때 구분하기 위한 공통 태그
+      application: ${spring.application.name:backend}
+    distribution:
+      percentiles-histogram:
+        # 켜지 않으면 http_server_requests_seconds_bucket 이 없어서
+        # histogram_quantile()로 p95/p99를 구할 수 없다(_count/_sum/_max만 나옴).
+        http.server.requests: true
+      # 버킷 범위를 제한해 시계열 카디널리티 폭증을 막는다.
+      minimum-expected-value:
+        http.server.requests: 10ms
+      maximum-expected-value:
+        http.server.requests: 30s

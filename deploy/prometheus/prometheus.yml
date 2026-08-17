@@ -1,0 +1,24 @@
+# 운영용 Prometheus 설정.
+#
+# 로드테스트용(loadtest/prometheus/prometheus.yml)과의 차이:
+#  - remote-write receiver를 켜지 않는다. (k6 결과 수신용이며, 열어두면 누구나 가짜
+#    메트릭을 주입할 수 있다. 운영에 k6를 쏘는 일 자체가 금지다.)
+#  - 앱의 관리 포트(9091)를 긁는다. 공개 포트(8080)에는 actuator가 없다.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    env: prod
+
+scrape_configs:
+  - job_name: 'springboot-app'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['app:9091']
+        labels:
+          env: prod
+
+  # Prometheus 자체 상태 (스크레이프 실패/지연 추적용)
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
