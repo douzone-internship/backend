@@ -1,0 +1,494 @@
+{
+  "uid": "elomadoc-overview",
+  "title": "Elomadoc 서비스 개요",
+  "description": "앱 상태 / 트래픽 / 커넥션 풀 / 외부 API / 배치 / JVM. k6 행은 로드테스트 때만 채워진다.",
+  "tags": ["elomadoc", "backend"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "app",
+        "label": "application",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(jvm_memory_used_bytes, application)",
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false,
+        "current": { "text": "backend", "value": "backend" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "서비스 상태",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "앱 스크레이프 상태",
+      "description": "Prometheus가 /actuator/prometheus를 긁고 있는지. 0이면 앱이 죽었거나 관리 포트가 막힌 것.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "targets": [
+        { "refId": "A", "expr": "up{job=\"springboot-app\"}", "legendFormat": "up" }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red", "index": 0 } } },
+            { "type": "value", "options": { "1": { "text": "UP", "color": "green", "index": 1 } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "요청률 (RPS)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 5, "x": 4, "y": 1 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(http_server_requests_seconds_count{application=\"$app\"}[5m]))", "legendFormat": "rps" }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "decimals": 2, "thresholds": { "mode": "absolute", "steps": [{ "color": "text", "value": null }] } },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "5xx 비율",
+      "description": "5분 이동 기준. 0보다 크면 사용자에게 실제로 에러가 나가고 있다는 뜻.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 5, "x": 9, "y": 1 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_server_requests_seconds_count{application=\"$app\",status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{application=\"$app\"}[5m])), 0.0001)",
+          "legendFormat": "5xx"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.01 }, { "color": "red", "value": 0.05 }] }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "응답시간 p95",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 5, "x": 14, "y": 1 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"$app\"}[5m])))",
+          "legendFormat": "p95"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 3,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 3 }] }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "커넥션 풀 대기",
+      "description": "hikaricp_connections_pending. 0보다 크면 요청이 DB 커넥션을 기다리는 중 = 풀 고갈 징후.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 5, "x": 19, "y": 1 },
+      "targets": [
+        { "refId": "A", "expr": "max(hikaricp_connections_pending{application=\"$app\"})", "legendFormat": "pending" }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 5 }] }
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "type": "row",
+      "title": "트래픽 / 지연",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "상태코드별 요청률",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (status) (rate(http_server_requests_seconds_count{application=\"$app\"}[5m]))",
+          "legendFormat": "{{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 20, "stacking": { "mode": "normal", "group": "A" }, "showPoints": "never" }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "500" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "응답시간 백분위 (p50 / p95 / p99)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"$app\"}[5m])))", "legendFormat": "p50" },
+        { "refId": "B", "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"$app\"}[5m])))", "legendFormat": "p95" },
+        { "refId": "C", "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{application=\"$app\"}[5m])))", "legendFormat": "p99" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 0, "showPoints": "never" } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "엔드포인트별 p95 (상위 10)",
+      "description": "어느 API가 느린지. /api/result/reports 는 캐시 miss 시 외부 API+LLM 때문에 원래 수 초가 걸린다.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, histogram_quantile(0.95, sum by (le, uri) (rate(http_server_requests_seconds_bucket{application=\"$app\"}[5m]))))",
+          "legendFormat": "{{uri}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 0, "showPoints": "never" } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true, "calcs": ["max"] }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "처리 중인 요청 수",
+      "description": "동시 처리 중인 요청. Tomcat 스레드 적체와 함께 보면 좋다.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "targets": [
+        { "refId": "A", "expr": "sum(http_server_requests_active_seconds_gcount{application=\"$app\"})", "legendFormat": "처리 중" },
+        { "refId": "B", "expr": "sum(tomcat_threads_busy_threads{application=\"$app\"})", "legendFormat": "Tomcat busy 스레드" },
+        { "refId": "C", "expr": "max(tomcat_threads_config_max_threads{application=\"$app\"})", "legendFormat": "Tomcat 최대 스레드" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "showPoints": "never" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Tomcat 최대 스레드" }, "properties": [{ "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } }, { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+
+    {
+      "type": "row",
+      "title": "DB 커넥션 풀 (HikariCP)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "커넥션 풀 상태",
+      "description": "active가 max에 붙고 pending이 쌓이면 풀 고갈이다.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
+      "targets": [
+        { "refId": "A", "expr": "hikaricp_connections_active{application=\"$app\"}", "legendFormat": "active" },
+        { "refId": "B", "expr": "hikaricp_connections_idle{application=\"$app\"}", "legendFormat": "idle" },
+        { "refId": "C", "expr": "hikaricp_connections_pending{application=\"$app\"}", "legendFormat": "pending (대기)" },
+        { "refId": "D", "expr": "hikaricp_connections_max{application=\"$app\"}", "legendFormat": "max (풀 크기)" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 0, "showPoints": "never" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "pending (대기)" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }, { "id": "custom.fillOpacity", "value": 30 }] },
+          { "matcher": { "id": "byName", "options": "max (풀 크기)" }, "properties": [{ "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "커넥션 획득 대기 시간",
+      "description": "풀에서 커넥션을 받기까지 걸린 시간. 치솟으면 풀 크기나 커넥션 점유 시간을 의심할 것.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(hikaricp_connections_acquire_seconds_sum{application=\"$app\"}[5m]) / clamp_min(rate(hikaricp_connections_acquire_seconds_count{application=\"$app\"}[5m]), 0.0001)",
+          "legendFormat": "평균"
+        },
+        { "refId": "B", "expr": "hikaricp_connections_acquire_seconds_max{application=\"$app\"}", "legendFormat": "최대" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "showPoints": "never" } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+
+    {
+      "type": "row",
+      "title": "외부 API (심평원 / Gemini)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 31 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "서킷브레이커 상태",
+      "description": "1인 계열이 현재 상태. open이 1이면 해당 외부 API 호출이 차단 중이다.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 32 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "resilience4j_circuitbreaker_state{application=\"$app\",state=~\"open|half_open\"}",
+          "legendFormat": "{{name}} / {{state}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "max": 1, "min": 0, "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 40, "showPoints": "never" } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "외부 호출 성공/실패율",
+      "description": "kind=failed 가 올라가면 상류(data.go.kr / Gemini)가 흔들리는 중. 게이트웨이는 분 단위 장애 윈도우를 가질 수 있다.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 32 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (name, kind) (rate(resilience4j_circuitbreaker_calls_seconds_count{application=\"$app\"}[5m]))",
+          "legendFormat": "{{name}} / {{kind}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 20, "showPoints": "never" } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "외부 호출 실패율 (%)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 32 },
+      "targets": [
+        { "refId": "A", "expr": "resilience4j_circuitbreaker_failure_rate{application=\"$app\"}", "legendFormat": "{{name}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": -1,
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 50 }] }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+
+    {
+      "type": "row",
+      "title": "월간 배치 (심평원 데이터)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "최근 30일 배치 성공",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 41 },
+      "targets": [
+        { "refId": "A", "expr": "sum(increase(batch_hira_runs_total{application=\"$app\",result=\"success\"}[30d])) or vector(0)", "legendFormat": "성공" }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "decimals": 0, "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "최근 30일 배치 실패",
+      "description": "0이 아니면 심평원 데이터가 갱신되지 않고 있다는 뜻.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 41 },
+      "targets": [
+        { "refId": "A", "expr": "sum(increase(batch_hira_runs_total{application=\"$app\",result=\"failure\"}[30d])) or vector(0)", "legendFormat": "실패" }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "decimals": 0, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "배치 실행 추이",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 12, "x": 12, "y": 41 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (result, trigger) (increase(batch_hira_runs_total{application=\"$app\"}[1h]))",
+          "legendFormat": "{{result}} / {{trigger}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "drawStyle": "bars", "lineWidth": 1, "fillOpacity": 60, "showPoints": "never" } },
+        "overrides": [
+          { "matcher": { "id": "byRegexp", "options": "failure.*" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+
+    {
+      "type": "row",
+      "title": "JVM",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 46 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "힙 사용량",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 47 },
+      "targets": [
+        { "refId": "A", "expr": "sum(jvm_memory_used_bytes{application=\"$app\",area=\"heap\"})", "legendFormat": "사용" },
+        { "refId": "B", "expr": "sum(jvm_memory_max_bytes{application=\"$app\",area=\"heap\"})", "legendFormat": "최대" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bytes", "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 20, "showPoints": "never" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "최대" }, "properties": [{ "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } }, { "id": "custom.fillOpacity", "value": 0 }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "GC 정지 시간",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 47 },
+      "targets": [
+        { "refId": "A", "expr": "sum by (cause) (rate(jvm_gc_pause_seconds_sum{application=\"$app\"}[5m]))", "legendFormat": "{{cause}}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 20, "stacking": { "mode": "normal", "group": "A" }, "showPoints": "never" } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+
+    {
+      "type": "row",
+      "title": "k6 부하테스트 (로드테스트 환경 전용 · 운영에서는 비어 있음)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 54 },
+      "collapsed": true,
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "VU 수 / 요청률",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 55 },
+          "targets": [
+            { "refId": "A", "expr": "k6_vus", "legendFormat": "VU" },
+            { "refId": "B", "expr": "rate(k6_http_reqs_total[1m])", "legendFormat": "k6 RPS" }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "short", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" } },
+            "overrides": []
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "k6 응답시간 p99 / 실패율",
+          "description": "k6가 밖에서 본 지표. 위쪽 커넥션 풀 패널과 시간축을 맞춰 보면 원인-증상이 이어진다.",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 55 },
+          "targets": [
+            { "refId": "A", "expr": "k6_http_req_duration_p99", "legendFormat": "p99 (ms)" },
+            { "refId": "B", "expr": "k6_http_req_failed_rate", "legendFormat": "실패율" }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "short", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 0, "showPoints": "never" } },
+            "overrides": [
+              { "matcher": { "id": "byName", "options": "실패율" }, "properties": [{ "id": "unit", "value": "percentunit" }, { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] }
+            ]
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } }
+        }
+      ]
+    }
+  ],
+  "__inputs": [],
+  "__requires": []
+}

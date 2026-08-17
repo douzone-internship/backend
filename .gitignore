@@ -41,6 +41,11 @@ out/
 
 ### ENV ###
 application-local.yaml
+.env.loadtest
 
 ### DATA ###
 data/
+# 운영 배포 시크릿 / 인증서
+.env.prod
+deploy/nginx/.htpasswd
+deploy/certbot/

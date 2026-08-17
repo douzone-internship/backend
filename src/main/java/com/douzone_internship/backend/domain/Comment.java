@@ -8,7 +8,9 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.Nationalized;
+import org.hibernate.type.SqlTypes;
 
 @Builder
 @Entity
@@ -33,8 +35,8 @@ public class Comment {
     @Column(name = "clinic_code", nullable = false)
     private String clinicCode;
 
-    @Nationalized
-    @Column(name = "comment", nullable = false, columnDefinition = "NVARCHAR(MAX)")
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
+    @Column(name = "comment", nullable = false)
     private String comment;
 
     @Column(name = "score", nullable = false)

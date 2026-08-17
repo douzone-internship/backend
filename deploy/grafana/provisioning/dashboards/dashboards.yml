@@ -1,0 +1,14 @@
+apiVersion: 1
+providers:
+  - name: 'elomadoc'
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    # 파일이 갱신되면 자동 반영. UI에서 만진 내용은 다음 동기화 때 덮어써지므로,
+    # 계속 쓸 패널은 반드시 JSON으로 export해서 deploy/grafana/dashboards/에 넣을 것.
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

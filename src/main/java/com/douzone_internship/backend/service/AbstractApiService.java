@@ -68,7 +68,10 @@ public abstract class AbstractApiService<T, E> {
 
         List<E> entities = new ArrayList<>();
         for (T dto : dtoList) {
-            entities.add(convertDtoToEntity(dto));
+            E entity = convertDtoToEntity(dto);
+            if (entity != null) {
+                entities.add(entity);
+            }
         }
 
         if (!entities.isEmpty()) {

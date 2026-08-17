@@ -1,0 +1,63 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["java", "-jar", "app.jar", "--spring.profiles.active=loadtest"]
+    ports:
+      - "8080:8080"
+    environment:
+      - JWT_SECRET_KEY=loadtest-only-secret-key-do-not-use-in-prod!!
+      - OPEN_DATA_KEY=${OPEN_DATA_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      loadtest-db:
+        condition: service_healthy
+
+  loadtest-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: loadtest
+      POSTGRES_USER: loadtest
+      POSTGRES_PASSWORD: loadtest
+    ports:
+      - "55432:5432"
+    volumes:
+      - loadtest-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U loadtest -d loadtest"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.enable-remote-write-receiver'
+    volumes:
+      - ./loadtest/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - app
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+    volumes:
+      - ./loadtest/grafana/provisioning:/etc/grafana/provisioning:ro
+      # 운영과 동일한 대시보드를 쓴다 (deploy/ 아래 하나만 유지)
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      # 볼륨이 없으면 compose down 시 UI에서 만든 패널이 전부 사라진다
+      - loadtest-grafana-data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  loadtest-db-data:
+  loadtest-grafana-data:

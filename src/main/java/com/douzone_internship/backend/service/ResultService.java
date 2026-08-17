@@ -67,6 +67,9 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
             params.add("yadmNm", resultRequest.hospitalName());
         }
         params.add("itemCd", resultRequest.clinicCode());
+        // _type=json이 없으면 data.go.kr은 XML을 반환한다. 그러면 아래 파싱이 전부 실패해
+        // 조용히 "결과 없음"으로 응답하게 되므로 반드시 명시해야 한다.
+        params.add("_type", "json");
 
         URI uri = UriComponentsBuilder.fromHttpUrl(clinicPaymentUrl)
                 .queryParams(params)
@@ -148,6 +151,11 @@ public class ResultService extends AbstractApiService<RawClinicPaymentResponseDT
                     || (itemsNode.has("item") && itemsNode.path("item").isMissingNode());
             return totalCount == 0 || itemsEmpty;
         } catch (Exception e) {
+            // 파싱 실패는 "결과 없음"과 전혀 다른 상황이다. 여기서 조용히 true를 반환하면
+            // 응답 형식이 어긋났을 때(예: JSON 대신 XML 수신) 모든 검색이 정상 200 +
+            // "no result"로 응답되어 장애가 드러나지 않는다. 최소한 흔적은 남긴다.
+            log.error("OpenData 응답 파싱 실패 - 결과 없음으로 처리됨. 응답 앞부분: {}",
+                    json == null ? "null" : json.substring(0, Math.min(200, json.length())), e);
             return true;
         }
     }
