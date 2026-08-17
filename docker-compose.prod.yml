@@ -8,7 +8,9 @@
 #   - grafana       → publish 안 함. nginx가 TLS + Basic Auth로 감싼 뒤에만 노출.
 #
 # 필요한 .env.prod 항목:
-#   APP_DOMAIN, MONITORING_DOMAIN, JWT_SECRET_KEY, OPEN_DATA_KEY, GEMINI_API_KEY,
+#   PROD_CONFIG_DIR   application-prod.yaml이 들어있는 서버상의 디렉터리 경로
+#   APP_DOMAIN, MONITORING_DOMAIN
+#   JWT_SECRET_KEY, OPEN_DATA_KEY, GEMINI_API_KEY
 #   GRAFANA_ADMIN_USER, GRAFANA_ADMIN_PASSWORD
 # 사전 준비: deploy/nginx/.htpasswd 생성, TLS 인증서 최초 발급(certbot standalone).
 
@@ -21,8 +23,16 @@ services:
     expose:
       - "8080"
       - "9091"
+    volumes:
+      # 운영 설정(application-prod.yaml)은 레포에 두지 않고 서버의 디렉터리를 마운트한다.
+      # DB 접속정보 / Gemini 키 / OpenData URL 등이 여기에 들어있다.
+      # PROD_CONFIG_DIR은 그 yaml이 들어있는 "디렉터리" 경로다 (파일 경로가 아님).
+      - ${PROD_CONFIG_DIR}:/app/config:ro
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      # 마운트한 디렉터리에서 application-prod.yaml을 추가로 읽는다.
+      # 이미지 안에 패키징된 application.yaml보다 우선순위가 높아 빈 값들을 채운다.
+      SPRING_CONFIG_ADDITIONAL_LOCATION: file:/app/config/
       # actuator를 공개 포트에서 분리한다. 이 포트는 publish하지 않는다.
       MANAGEMENT_SERVER_PORT: 9091
       # 관리 포트가 인터넷에 노출되지 않으므로 Prometheus가 인증 없이 스크레이핑해도 안전하다.
