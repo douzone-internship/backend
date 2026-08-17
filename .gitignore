@@ -49,3 +49,6 @@ data/
 .env.prod
 deploy/nginx/.htpasswd
 deploy/certbot/
+
+# 운영 설정 (DB 접속정보/API 키 포함 — 커밋 금지)
+src/main/resources/application-prod.yaml
