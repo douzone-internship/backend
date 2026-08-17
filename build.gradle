@@ -50,7 +50,22 @@ dependencies {
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+	// eval 패키지는 실제 Gemini/공공데이터 API를 호출하는 벤치마크다 (실 API 키, 수 분 소요,
+	// data.go.kr 일일 쿼터 소모). 기본 test에서 제외하고 필요할 때 evalTest로 따로 돌린다.
+	useJUnitPlatform {
+		excludeTags 'eval'
+	}
+}
+
+// 실제 외부 API를 호출하는 eval 벤치마크 전용 태스크 (local 프로필 + 실 키 필요)
+tasks.register('evalTest', Test) {
+	group = 'verification'
+	description = '실제 LLM/공공데이터 API를 호출하는 eval 벤치마크를 실행한다.'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform {
+		includeTags 'eval'
+	}
 }
 
 // bootRun 태스크에 local 프로필을 기본으로 활성화하는 설정 추가

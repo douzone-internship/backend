@@ -13,6 +13,7 @@ import java.util.stream.Stream;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,12 +31,21 @@ public class JsonScheduler {
 
     private final Path dataDir = Paths.get("data");
 
+    // 기동 시 자동 배치는 실제 data.go.kr을 11회 호출한다. 테스트(@SpringBootTest)에서까지
+    // 돌면 외부 API에 의존하는 느리고 불안정한 스위트가 되므로 끌 수 있게 한다.
+    @Value("${hira.batch.run-on-startup:true}")
+    private boolean runOnStartup = true;
+
     private volatile Instant lastSuccessTime;
     private volatile Instant lastFailureTime;
     private volatile String lastFailureMessage;
 
     @EventListener(ApplicationReadyEvent.class)
     public void checkAndRunOnStartup() {
+        if (!runOnStartup) {
+            log.info("hira.batch.run-on-startup=false 이므로 기동 시 배치를 건너뜀");
+            return;
+        }
         try {
             if (!Files.exists(dataDir)) {
                 log.info("/data 폴더가 없어 즉시 Json 다운로드 실행 및 DB에 저장");
