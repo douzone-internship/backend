@@ -6,6 +6,18 @@ observability:
   actuator-prometheus-public: true
 
 spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: loadtest-dummy-client-id
+            client-secret: loadtest-dummy-client-secret
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+          kakao:
+            client-id: loadtest-dummy-client-id
+            client-secret: loadtest-dummy-client-secret
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
   datasource:
     url: jdbc:postgresql://loadtest-db:5432/loadtest
     username: loadtest
@@ -27,6 +39,11 @@ spring:
     # 운영은 validate(스키마는 별도 관리)이지만, 여기는 매번 새로 뜨는 일회용 DB이므로 update
     hibernate:
       ddl-auto: update
+    # 커넥션 풀 고갈 가설 검증용.
+    # 기본값(true)이면 요청 처리 중 첫 DB 접근 시점에 커넥션이 물리고, 이후 외부
+    # API(OpenData/Gemini) 호출이 끝날 때까지 반납되지 않는다. false로 끄면
+    # @Transactional 경계(또는 Repository 메서드 1건)가 끝나는 즉시 반납된다.
+    open-in-view: false
 
 system-prompt: "너는 비급여 진료를 가격을 분석하고 병원을 추천해주는 에이전트야 유저 프롬프트에 들어온 input에 있는 정보를 살펴보고
 최저가, 최고가, 평균가, 추천 병원 및 평가, 전반적인 시술에 관한 평가 등을 제공해 가격도 중요하지만 현재 시점까지 알려저 있는 병원의 후기나 평점을 참고해서 대답해
